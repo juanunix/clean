@@ -1,0 +1,524 @@
+---
+name: android-clean-code-audit
+description: >
+  Reviews Android and Kotlin source code for Clean Code principles,
+  SOLID violations, readability, maintainability, complexity, duplication,
+  naming, error handling, testability, and unnecessary abstractions.
+  Use when reviewing, refactoring, implementing, or improving Kotlin code.
+---
+
+# Android Clean Code Audit
+
+## 1. Objective
+
+Analyze an Android/Kotlin codebase and identify meaningful Clean Code violations.
+
+The audit must:
+
+- Improve readability.
+- Detect excessive complexity.
+- Identify unclear responsibilities.
+- Detect duplicated logic.
+- Validate SOLID principles.
+- Identify unnecessary abstractions.
+- Detect fragile error handling.
+- Identify testability problems.
+- Report concrete and actionable findings.
+
+Do not modify source code unless explicitly requested.
+
+## 2. Core Principles
+
+Apply:
+
+1. Meaningful Names.
+2. Small Functions.
+3. Single Responsibility Principle.
+4. Don't Repeat Yourself (DRY).
+5. Keep It Simple, Stupid (KISS).
+6. You Aren't Gonna Need It (YAGNI).
+7. SOLID.
+8. Explicit Error Handling.
+9. Immutability where appropriate.
+10. Readability over cleverness.
+
+Do not interpret these principles as rigid rules based on line counts.
+
+## 3. Naming Rules
+
+Inspect classes, functions, properties, parameters, constants, and interfaces.
+
+Rules:
+
+- Names must communicate intent.
+- Avoid ambiguous names such as `data`, `result`, `manager`, `helper`, `process`, or `execute` when more meaningful names are possible.
+- Boolean names should express a condition.
+- Functions should use meaningful verbs.
+- Classes should represent a clear responsibility.
+- Avoid unnecessary abbreviations.
+- Avoid misleading names.
+- Avoid names that expose implementation details unnecessarily.
+- Use consistent Kotlin naming conventions.
+- Avoid meaningless suffixes such as `Impl` when the abstraction does not justify them.
+- Do not rename established public APIs without a concrete reason.
+
+Examples:
+
+Bad:
+
+```kotlin
+fun process(data: String): Boolean
+```
+
+Better:
+
+```kotlin
+fun isPaymentEligible(paymentId: String): Boolean
+```
+
+Report naming problems only when they materially reduce comprehension.
+
+## 4. Function Rules
+
+Inspect:
+
+- Function length.
+- Number of responsibilities.
+- Number of parameters.
+- Nested conditions.
+- Control flow.
+- Side effects.
+- Return values.
+
+Rules:
+
+- Functions should perform one coherent task.
+- Functions should have clear inputs and outputs.
+- Avoid deeply nested conditionals.
+- Avoid large functions containing unrelated operations.
+- Avoid excessive parameters.
+- Avoid boolean flags that change unrelated behavior.
+- Avoid hidden side effects.
+- Avoid returning meaningless values.
+- Avoid duplicated logic.
+- Prefer early returns when they improve clarity.
+- Prefer expressive Kotlin constructs when they improve readability.
+- Avoid overly clever functional chains.
+- Avoid unnecessary `!!`.
+- Avoid unnecessary `run`, `let`, `also`, or `apply` chains.
+- Avoid unnecessary suspend functions.
+- Avoid blocking operations in suspend functions.
+
+Do not report a function solely because it exceeds a fixed number of lines.
+
+## 5. Class and Responsibility Rules
+
+Inspect:
+
+- Classes.
+- ViewModels.
+- Repositories.
+- UseCases.
+- Managers.
+- Controllers.
+- Utilities.
+- Extensions.
+
+Rules:
+
+- A class must have a coherent responsibility.
+- Avoid God Objects.
+- Avoid classes with unrelated methods.
+- Avoid excessive mutable state.
+- Avoid unnecessary global objects.
+- Avoid utility classes that accumulate unrelated functionality.
+- Avoid classes that only wrap another class without adding value.
+- Avoid inheritance when composition is more appropriate.
+- Avoid abstractions that are more complicated than their implementation.
+- Avoid excessive coupling between classes.
+
+A class having many methods is not automatically a violation. Analyze the responsibilities of those methods.
+
+## 6. SOLID Rules
+
+### S — Single Responsibility Principle
+
+A class or function should have one coherent responsibility.
+
+Detect:
+
+- Classes that handle multiple unrelated concerns.
+- ViewModels responsible for networking, formatting, business rules, and navigation.
+- Repositories responsible for UI state.
+- Utility classes with unrelated functionality.
+
+### O — Open/Closed Principle
+
+Components should allow reasonable extension without requiring unnecessary changes to stable behavior.
+
+Detect:
+
+- Repeated modification of central conditional logic for each new variation.
+- Excessive `when` statements over extensible business variants.
+- Hardcoded behavior that should be configurable.
+
+Do not require interfaces for every variation.
+
+### L — Liskov Substitution Principle
+
+Subtypes must preserve the expected behavior of their contracts.
+
+Detect:
+
+- Implementations that violate interface expectations.
+- Implementations that throw unsupported-operation exceptions for expected contract operations.
+- Overrides that weaken guarantees.
+- Subtypes that introduce unexpected side effects.
+
+### I — Interface Segregation Principle
+
+Interfaces should expose only the operations required by their consumers.
+
+Detect:
+
+- Large interfaces with unrelated responsibilities.
+- Implementations forced to implement unused operations.
+- Consumers depending on unnecessary methods.
+
+### D — Dependency Inversion Principle
+
+High-level policies should depend on abstractions rather than concrete implementation details.
+
+Detect:
+
+- Business classes directly creating infrastructure dependencies.
+- Concrete dependencies embedded in high-level components.
+- Unnecessary global access to implementations.
+
+Coordinate with the Clean Architecture audit when the issue is primarily a layer boundary violation.
+
+## 7. Kotlin-Specific Rules
+
+Inspect Kotlin idioms and language usage.
+
+Rules:
+
+- Prefer immutable `val` over `var` when mutation is unnecessary.
+- Avoid `!!` unless safety is explicitly established.
+- Avoid unnecessary nullable types.
+- Avoid unnecessary `lateinit`.
+- Avoid unnecessary explicit types when inference improves readability.
+- Avoid overly complex generic types.
+- Avoid unnecessary extension functions.
+- Avoid extension functions that hide side effects.
+- Avoid `data class` for types that do not need generated value semantics.
+- Avoid `object` for mutable global state without justification.
+- Avoid using exceptions for ordinary control flow.
+- Avoid swallowing exceptions.
+- Avoid broad `catch (Exception)` without justification.
+- Avoid magic numbers and strings.
+- Use sealed types when they meaningfully represent a closed state space.
+- Avoid exposing mutable collections.
+- Avoid unsafe casts.
+- Avoid blocking calls in coroutine contexts.
+- Avoid unnecessary coroutine scopes.
+- Avoid incorrect dispatcher usage.
+- Avoid unnecessary `GlobalScope`.
+- Avoid leaking coroutine jobs.
+
+## 8. Android and Jetpack Compose Rules
+
+### ViewModel
+
+- Avoid ViewModels with excessive responsibilities.
+- Avoid direct access to Android Views.
+- Avoid holding Activity references.
+- Avoid business logic unrelated to state orchestration.
+- Avoid mutable state exposed publicly.
+- Avoid unnecessary state duplication.
+- Avoid collecting flows in multiple places without justification.
+- Avoid unstructured coroutine execution.
+
+### Jetpack Compose
+
+- Avoid Composables with excessive responsibilities.
+- Avoid business logic inside Composables.
+- Avoid side effects during composition.
+- Avoid unnecessary state hoisting or state duplication.
+- Avoid unstable state models when stability matters.
+- Avoid unnecessary recomposition triggers.
+- Avoid incorrect `remember` usage.
+- Avoid incorrect `LaunchedEffect` keys.
+- Avoid unnecessary `derivedStateOf`.
+- Avoid using `rememberUpdatedState` without a changing captured value that must stay current.
+- Avoid excessive parameters that make the component difficult to understand.
+- Avoid passing ViewModels into reusable UI components.
+- Avoid unnecessary custom components that wrap a single element without value.
+- Avoid creating custom abstractions over Compose APIs without a clear benefit.
+
+Do not report recomposition problems without identifying a plausible cause or measurable risk.
+
+## 9. Error Handling Rules
+
+Inspect:
+
+- Exceptions.
+- Result types.
+- Nullable return values.
+- Error messages.
+- Coroutine cancellation.
+- API failures.
+- Business errors.
+
+Rules:
+
+- Errors must not be silently ignored.
+- Avoid catching exceptions without handling them.
+- Avoid losing useful error context.
+- Avoid exposing technical exceptions directly to UI.
+- Avoid using nullable results to represent multiple distinct failure states.
+- Avoid converting all errors into a generic success/failure Boolean.
+- Preserve coroutine cancellation.
+- Avoid catching `CancellationException` as a normal error.
+- Avoid using exceptions for expected business validation.
+- Avoid duplicating error conversion logic.
+- Avoid misleading error messages.
+
+## 10. Duplication and Complexity Rules
+
+Inspect:
+
+- Repeated conditions.
+- Repeated transformations.
+- Similar functions.
+- Large `when` expressions.
+- Nested loops.
+- Long chains of operations.
+- Complex Boolean expressions.
+
+Rules:
+
+- Identify meaningful duplication.
+- Avoid premature abstractions.
+- Avoid extracting functions that make simple code harder to follow.
+- Prefer explicit code over overly compact code.
+- Reduce unnecessary nesting.
+- Simplify Boolean conditions when it improves readability.
+- Avoid repeated calculations when they are expensive or obscure.
+- Avoid introducing abstractions for only one trivial operation unless they have a clear purpose.
+
+Do not report similar-looking code when the business behavior is intentionally different.
+
+## 11. Testing and Maintainability Rules
+
+Inspect:
+
+- Unit tests.
+- Testability of dependencies.
+- Mutable global state.
+- Hidden side effects.
+- Hardcoded external dependencies.
+- Complex constructors.
+- Difficult-to-isolate components.
+
+Rules:
+
+- Business logic should be testable independently.
+- Avoid code that requires real infrastructure for unit testing.
+- Avoid unnecessary dependence on static/global state.
+- Avoid hidden dependencies.
+- Avoid excessive mocking.
+- Prefer testing behavior rather than implementation details.
+- Avoid tests that duplicate production logic.
+- Avoid brittle tests.
+- Identify code that is difficult to test due to design issues.
+
+Do not treat lack of test coverage as a Clean Code violation unless the audit is explicitly configured to include testing coverage.
+
+## 12. Analysis Workflow
+
+### Step 1 — Discover
+
+Identify:
+
+- Kotlin version.
+- Android project structure.
+- Modules.
+- Coding conventions.
+- Existing lint and Detekt rules.
+- Existing testing conventions.
+- Existing architectural boundaries.
+
+### Step 2 — Analyze the Code
+
+For each relevant file:
+
+1. Understand its responsibility.
+2. Read the complete relevant implementation.
+3. Identify meaningful complexity.
+4. Inspect naming and control flow.
+5. Inspect error handling.
+6. Inspect mutability and side effects.
+7. Inspect duplication.
+8. Inspect testability.
+9. Compare against the rules.
+10. Validate whether the issue is actionable.
+
+### Step 3 — Prioritize
+
+Focus on:
+
+- Defects caused by poor code design.
+- High complexity.
+- Misleading behavior.
+- Difficult maintenance.
+- Hidden side effects.
+- Unnecessary coupling.
+- Repeated business logic.
+- Fragile error handling.
+
+### Step 4 — Validate
+
+Before reporting:
+
+- Verify the actual code.
+- Verify the line number.
+- Ensure the issue is not already handled elsewhere.
+- Consider legitimate exceptions.
+- Avoid subjective style comments.
+- Avoid duplicating findings from other audits.
+
+### Step 5 — Report
+
+Generate a concise, evidence-based report.
+
+## 13. Severity Classification
+
+### CRITICAL
+
+Code quality issues with a high likelihood of serious defects.
+
+Examples:
+
+- Unsafe operations that can cause crashes.
+- Swallowed coroutine cancellation.
+- Incorrect concurrency handling with serious consequences.
+- Hidden mutable global state causing incorrect behavior.
+- Error handling that can incorrectly report success.
+
+### HIGH
+
+Major maintainability or reliability problems.
+
+Examples:
+
+- God Object.
+- Complex business logic inside ViewModel.
+- Deeply nested control flow.
+- Repeated business logic.
+- Broad exception handling that hides failures.
+- Excessive coupling.
+- Functions with multiple unrelated responsibilities.
+
+### MEDIUM
+
+Meaningful code quality issues.
+
+Examples:
+
+- Poor naming.
+- Unnecessary abstractions.
+- Excessive parameters.
+- Complex expressions.
+- Duplicated formatting.
+- Unnecessary mutable state.
+
+### LOW
+
+Minor improvements.
+
+Examples:
+
+- Small readability improvements.
+- Minor simplification.
+- Nonessential naming refinements.
+
+Do not report LOW findings unless explicitly requested.
+
+## 14. Output Format
+
+# Clean Code Audit
+
+## Summary
+
+- Project:
+- Modules analyzed:
+- Files analyzed:
+- Critical findings:
+- High findings:
+- Medium findings:
+- Overall assessment:
+
+## Findings
+
+### [SEVERITY] [RULE-ID] Short Description
+
+- **File:** Exact path.
+- **Line:** Exact line or range.
+- **Component:** Class or function.
+- **Problem:** What is wrong.
+- **Evidence:** Actual code.
+- **Principle:** Clean Code or SOLID principle.
+- **Impact:** Why it matters.
+- **Recommendation:** Concrete improvement.
+- **Confidence:** High, Medium, or Low.
+
+Example:
+
+### [HIGH] [CC-SRP-001] ViewModel has multiple responsibilities
+
+- **File:** `feature/payment/PaymentViewModel.kt`
+- **Line:** 25-110
+- **Component:** `PaymentViewModel`
+- **Problem:** The ViewModel performs payment validation, HTTP request construction, formatting, and UI state management.
+- **Evidence:** Multiple unrelated responsibilities in the same class.
+- **Principle:** Single Responsibility Principle.
+- **Impact:** Difficult to test and maintain.
+- **Recommendation:** Move business validation into Domain and HTTP handling into Data. Keep the ViewModel focused on UI state orchestration.
+- **Confidence:** High.
+
+## Recommended Improvements
+
+List the minimum changes required.
+
+## Positive Observations
+
+Mention strong design decisions only when directly supported by the code.
+
+## 15. Rules for the Auditor
+
+- Analyze actual code.
+- Never invent files or line numbers.
+- Never report a violation without evidence.
+- Do not modify source code during an audit.
+- Do not treat every long function as a violation.
+- Do not treat every interface as a violation.
+- Do not treat every `object` as a violation.
+- Do not enforce arbitrary line limits.
+- Do not report style preferences as defects.
+- Do not recommend abstraction without a clear benefit.
+- Do not recommend refactoring code that is already clear and maintainable.
+- Prefer simple, focused findings.
+- Avoid duplicate findings.
+- Respect existing project conventions.
+- Use Detekt or ktlint findings as supporting evidence, not as a substitute for architectural reasoning.
+
+## 16. Final Objective
+
+Provide a practical code review that answers:
+
+1. What is wrong?
+2. Where is it?
+3. Why does it matter?
+4. Which principle is violated?
+5. What is the simplest reasonable correction?
