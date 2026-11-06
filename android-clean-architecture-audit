@@ -1,0 +1,433 @@
+---
+name: android-clean-architecture-audit
+description: >
+  Audits Android and Kotlin projects for Clean Architecture violations.
+  Analyzes architectural layers, dependency direction, Domain contracts,
+  Repository implementations, Data Sources, Presentation, dependency injection,
+  Gradle modules, and MVI boundaries. Use when reviewing, creating, refactoring,
+  or validating Android architecture.
+---
+
+# Android Clean Architecture Audit
+
+## 1. Objective
+
+Analyze an Android/Kotlin codebase and identify violations of Clean Architecture.
+
+The audit must:
+
+- Identify architectural violations by file.
+- Validate dependency direction.
+- Verify separation of responsibilities between layers.
+- Detect incorrect data flow.
+- Validate Domain, Data, and Presentation boundaries.
+- Verify architectural consistency across Gradle modules.
+- Prioritize only meaningful architectural problems.
+- Provide evidence and actionable recommendations.
+
+Do not modify source code unless explicitly requested.
+
+## 2. Architectural Principles
+
+Apply these principles:
+
+1. Dependency Rule.
+2. Separation of Concerns.
+3. Dependency Inversion Principle.
+4. Single Responsibility Principle.
+5. Explicit architectural boundaries.
+6. Business logic independence.
+7. Framework independence.
+8. Testability.
+9. High cohesion and low coupling.
+
+### Dependency Rule
+
+Dependencies must point toward the inner layers.
+
+Expected dependency direction:
+
+```text
+Presentation ──────> Domain
+Data ──────────────> Domain
+
+App / Composition Root
+ ├── Presentation
+ ├── Data
+ └── Dependency Injection
+```
+
+Forbidden dependencies:
+
+```text
+Domain ──X──> Data
+Domain ──X──> Presentation
+Domain ──X──> Android Framework
+
+Presentation ──X──> Data Implementation
+```
+
+The application composition root may connect concrete implementations.
+
+Runtime execution flow does not necessarily match source dependency direction.
+
+## 3. Scope of Analysis
+
+Analyze the following components.
+
+### 3.1 Domain Layer
+
+Inspect:
+
+- Entities and business models.
+- UseCases / Interactors.
+- Repository contracts.
+- Domain services.
+- Business validation.
+- Domain errors and result types.
+
+Rules:
+
+- Domain must not depend on Android Framework.
+- Domain must not depend on Presentation.
+- Domain must not depend on Data implementations.
+- Domain must not expose DTOs or database entities.
+- UseCases must not instantiate concrete Repository implementations.
+- Business rules must not be duplicated across layers.
+- Repository contracts must represent business-oriented operations.
+- UseCases must have clear responsibilities.
+- Domain must remain independently testable.
+- Domain models must not contain UI formatting or infrastructure logic.
+
+A UseCase that only delegates to a Repository is not automatically a violation. Evaluate whether the project intentionally uses this abstraction.
+
+### 3.2 Data Layer
+
+Inspect:
+
+- Repository implementations.
+- Remote Data Sources.
+- Local Data Sources.
+- DTOs.
+- Database entities.
+- API services.
+- Mappers.
+- Cache strategies.
+- Error transformations.
+
+Rules:
+
+- Repository implementations must respect Domain contracts.
+- Data must not depend on Presentation.
+- Data must not expose DTOs to Domain.
+- Data must not expose Room entities to Domain.
+- DTOs must represent external data contracts.
+- Database entities must represent persistence models.
+- Mappers must not depend on Presentation.
+- Repository implementations must not contain UI logic.
+- Business policies must not be duplicated in Data.
+- Data Sources must encapsulate infrastructure access.
+- Repository implementations must be replaceable in tests.
+
+### 3.3 Presentation Layer
+
+Inspect:
+
+- ViewModels.
+- UiState.
+- UiEvent.
+- UiAction.
+- Composables.
+- Navigation.
+- UI mappers.
+- Screen-level state management.
+
+Rules:
+
+- ViewModels must not depend directly on Retrofit or Room.
+- ViewModels must not depend on concrete Repository implementations.
+- ViewModels must delegate business rules to Domain.
+- UiState must not expose DTOs or persistence entities.
+- UiState must be immutable.
+- UI must not contain complex business logic.
+- Composables must not access Data Sources directly.
+- Reusable UI components must not depend on concrete ViewModels.
+- Navigation must not leak into Domain.
+- UI mappers must not execute infrastructure operations.
+- UI state must avoid contradictory combinations.
+
+### 3.4 Dependency Injection
+
+Inspect:
+
+- Hilt modules.
+- Koin modules.
+- Dagger components.
+- Providers.
+- Scopes.
+- Composition roots.
+
+Rules:
+
+- Domain must not depend on DI frameworks.
+- Concrete Repository implementations must be bound to their contracts.
+- Dependencies must not be instantiated inside UseCases.
+- Dependency scopes must be coherent.
+- Circular dependencies must be reported.
+- DI configuration must not contain business logic.
+- Dependency injection must allow replacing implementations in tests.
+
+### 3.5 Gradle Modules
+
+Inspect:
+
+- `settings.gradle.kts`.
+- Root `build.gradle.kts`.
+- Module `build.gradle.kts`.
+- `api` and `implementation` dependencies.
+- Feature module dependencies.
+- Core module dependencies.
+
+Rules:
+
+- Domain modules must not depend on Data modules.
+- Domain modules must not depend on Android modules.
+- Data modules may depend on Domain.
+- Presentation modules may depend on Domain.
+- Presentation must not depend on Data implementations unless the project explicitly defines a justified composition-root exception.
+- Circular module dependencies must be reported.
+- Core modules must not become unrestricted shared-code containers.
+- Public module APIs must be minimized.
+
+## 4. Analysis Workflow
+
+### Step 1 — Discover the Project
+
+Identify:
+
+- Project type: Android, Kotlin Multiplatform, or JVM.
+- Gradle modules.
+- Package structure.
+- Architectural conventions.
+- Existing DI framework.
+- State management approach.
+- Existing architectural tests.
+- Existing project-specific rules.
+
+Do not assume the project follows a specific architecture based only on directory names.
+
+### Step 2 — Build the Dependency Graph
+
+Identify relationships between:
+
+- Presentation.
+- Domain.
+- Data.
+- Data Sources.
+- Infrastructure.
+- Core modules.
+- Application composition root.
+
+Use actual imports and Gradle dependencies.
+
+Do not infer dependencies only from class names.
+
+### Step 3 — Analyze Each Layer
+
+For each file:
+
+1. Identify its architectural responsibility.
+2. Identify its dependencies.
+3. Identify the data it receives and exposes.
+4. Identify its business or presentation responsibilities.
+5. Compare its behavior against the rules.
+6. Determine whether a violation is confirmed.
+
+### Step 4 — Trace Important Data Flows
+
+When relevant, trace:
+
+```text
+User Action
+    ↓
+Composable
+    ↓
+ViewModel
+    ↓
+UseCase
+    ↓
+Repository Contract
+    ↓
+Repository Implementation
+    ↓
+Data Source
+```
+
+And the response flow:
+
+```text
+Remote / Local Data
+    ↓
+DTO / Database Entity
+    ↓
+Data Mapper
+    ↓
+Domain Model
+    ↓
+UseCase
+    ↓
+ViewModel
+    ↓
+UiState
+    ↓
+Composable
+```
+
+Identify any layer bypasses.
+
+### Step 5 — Validate Findings
+
+Before reporting a violation:
+
+- Verify the exact file.
+- Verify the dependency or behavior.
+- Read the relevant surrounding code.
+- Check whether an abstraction is intentional.
+- Check whether the project uses a different but valid architectural convention.
+- Avoid duplicate findings.
+- Avoid speculative findings.
+
+### Step 6 — Generate the Report
+
+Report findings in severity order.
+
+## 5. Severity Classification
+
+### CRITICAL
+
+Architectural boundary violations that compromise independence or dependency direction.
+
+Examples:
+
+- Domain imports Android Framework.
+- Domain imports Data implementation.
+- Domain imports Presentation.
+- ViewModel directly accesses Retrofit.
+- Presentation directly depends on concrete Data implementation.
+- Domain exposes DTOs or Room entities.
+- Circular module dependencies.
+
+### HIGH
+
+Significant responsibility or architectural design violations.
+
+Examples:
+
+- ViewModel contains complex business rules.
+- Repository contains UI logic.
+- UseCase has multiple unrelated responsibilities.
+- Data duplicates business rules.
+- Repository contracts expose infrastructure details.
+- UiState exposes external data models.
+
+### MEDIUM
+
+Maintainability issues that do not directly violate the Dependency Rule.
+
+Examples:
+
+- Unnecessary abstraction.
+- Redundant UseCase.
+- Duplicated mapper.
+- Poor module encapsulation.
+- Excessive responsibility in an otherwise valid component.
+
+### LOW
+
+Minor architectural improvements.
+
+Do not report LOW findings unless explicitly requested.
+
+## 6. Output Format
+
+Return the report using the following structure:
+
+# Clean Architecture Audit
+
+## Summary
+
+- Project:
+- Architecture detected:
+- Modules analyzed:
+- Files analyzed:
+- Critical violations:
+- High violations:
+- Medium violations:
+- Overall assessment:
+
+## Architectural Dependency Graph
+
+Provide a Mermaid diagram based on actual project dependencies.
+
+## Findings
+
+For every finding:
+
+### [SEVERITY] [RULE-ID] Short Description
+
+- **File:** Exact path.
+- **Line:** Exact line or range.
+- **Component:** Class or function.
+- **Violation:** What is wrong.
+- **Evidence:** Actual code or dependency.
+- **Architectural Rule:** Why it violates the architecture.
+- **Impact:** Consequence.
+- **Recommendation:** Concrete correction.
+- **Confidence:** High, Medium, or Low.
+
+Example:
+
+### [CRITICAL] [UC-006] UseCase depends on concrete Repository
+
+- **File:** `feature/payment/domain/ValidatePaymentUseCase.kt`
+- **Line:** 14
+- **Component:** `ValidatePaymentUseCase`
+- **Violation:** Domain directly instantiates `PaymentRepositoryImpl`.
+- **Evidence:** Constructor call to the concrete implementation.
+- **Architectural Rule:** Domain must depend on abstractions.
+- **Impact:** Domain is coupled to infrastructure.
+- **Recommendation:** Depend on `PaymentRepository` and inject its implementation externally.
+- **Confidence:** High.
+
+## Correct Dependency Structure
+
+Show the expected structure for the affected components.
+
+## Recommendations
+
+List the minimum changes required to restore architectural compliance.
+
+## 7. Rules for the Auditor
+
+- Analyze the actual codebase.
+- Never invent files, classes, imports, or line numbers.
+- Never report a violation without evidence.
+- Do not modify code during the audit.
+- Do not report stylistic issues as architecture violations.
+- Do not enforce a particular package naming convention unless the project defines one.
+- Do not require a UseCase for every Repository operation.
+- Do not require Domain to exist in projects where it is intentionally unnecessary.
+- Do not assume every Repository must combine Remote and Local sources.
+- Do not treat all direct Repository usage in Presentation as automatically invalid without checking the project architecture.
+- Respect Kotlin Multiplatform boundaries when applicable.
+- Prefer a small number of high-confidence findings over a large number of speculative findings.
+
+## 8. Final Objective
+
+Produce an actionable architectural audit that helps developers understand:
+
+1. What is wrong.
+2. Where it is wrong.
+3. Which architectural rule is violated.
+4. Why it matters.
+5. How to correct it.
