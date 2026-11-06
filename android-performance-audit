@@ -1,0 +1,291 @@
+---
+name: android-performance-audit
+description: >
+  Audits Android application performance to identify inefficient execution,
+  main-thread blocking, unnecessary allocations, expensive operations,
+  rendering bottlenecks, inefficient data processing, and Android resource
+  consumption. Use when reviewing Android or Kotlin code for performance
+  regressions, optimizing application responsiveness, or analyzing code changes.
+---
+
+# Android Performance Audit
+
+## Objective
+
+Analyze an Android codebase to identify performance problems that negatively affect:
+
+- Application startup time.
+- UI responsiveness.
+- Main Thread execution.
+- CPU consumption.
+- Memory allocations.
+- Rendering and frame performance.
+- Network and database operations.
+- Battery consumption.
+- Scrolling and user interactions.
+
+The audit must prioritize real performance problems and avoid reporting theoretical optimizations without evidence.
+
+## Core principles
+
+1. User experience is the primary performance indicator.
+2. Expensive operations must not block the Main Thread.
+3. Avoid unnecessary object allocations and repeated computations.
+4. Optimize only when there is evidence of a bottleneck.
+5. Prefer asynchronous and lifecycle-aware execution.
+6. Avoid unnecessary work during recomposition.
+7. Preserve application behavior and correctness.
+8. Prefer platform-supported profiling tools over assumptions.
+
+## 1. Main Thread audit
+
+Verify:
+
+- Disk operations executed on the Main Thread.
+- Network operations executed synchronously.
+- Database queries blocking UI execution.
+- Large JSON parsing operations on the Main Thread.
+- Expensive calculations inside UI rendering.
+- Blocking calls such as `runBlocking` in UI paths.
+- Excessive work inside `onCreate`, `onStart` and `onResume`.
+- Synchronous initialization of expensive dependencies.
+
+Flag operations that can cause UI freezes or Application Not Responding (ANR) conditions.
+
+## 2. Kotlin Coroutines and Flow
+
+Verify:
+
+- Correct dispatcher selection.
+- CPU-intensive work using an appropriate dispatcher.
+- Blocking I/O isolated from the Main Thread.
+- Incorrect use of `Dispatchers.Unconfined`.
+- Unnecessary coroutine creation.
+- Incorrect scope ownership.
+- Missing cancellation propagation.
+- Sequential operations that could safely run concurrently.
+- Unnecessary Flow transformations.
+- Expensive operations repeated inside `map`, `filter` or `combine`.
+- Incorrect use of `flowOn`.
+- Collection that continues beyond the required lifecycle.
+
+Do not automatically recommend `Dispatchers.IO` for every operation. Evaluate whether the operation is blocking I/O or CPU-intensive.
+
+## 3. Jetpack Compose performance
+
+Verify:
+
+- Unnecessary recompositions.
+- Unstable parameters causing excessive recomposition.
+- Expensive calculations inside Composable functions.
+- Missing `remember` for genuinely reusable calculations.
+- Incorrect use of `derivedStateOf`.
+- Incorrect state reads causing broad recomposition.
+- Unnecessary state hoisting.
+- Large Composable functions with excessive responsibilities.
+- Unstable collections passed through Composable parameters.
+- Missing stable keys in lazy lists.
+- Incorrect use of `LazyColumn`, `LazyRow` and lazy grids.
+- Expensive operations inside item content.
+- Unnecessary object creation during recomposition.
+- Excessive nested layouts.
+- Unnecessary animations or expensive visual effects.
+
+Evaluate Strong Skipping and compiler stability behavior before reporting stability-related issues.
+
+Do not flag every Composable without `remember`. It is only necessary when the calculation or object needs to survive recomposition.
+
+## 4. Collections and data processing
+
+Verify:
+
+- Repeated iterations over large collections.
+- Unnecessary intermediate collection creation.
+- Repeated sorting or filtering.
+- Inefficient nested loops.
+- Expensive transformations executed repeatedly.
+- Unnecessary conversions between List, Set and Map.
+- Repeated lookups that could use indexed access.
+- Incorrect collection selection for the operation.
+- Large data processing on the Main Thread.
+
+Consider collection size and execution frequency before assigning severity.
+
+## 5. Android lifecycle and initialization
+
+Verify:
+
+- Expensive initialization on every Activity or Fragment recreation.
+- Repeated dependency initialization.
+- Repeated loading of static or immutable data.
+- Work performed unnecessarily during lifecycle callbacks.
+- Repeated registration of observers or listeners.
+- Expensive operations triggered by configuration changes.
+- Unnecessary initialization of SDKs and services.
+
+## 6. Database and persistence
+
+Verify:
+
+- Queries executed on the Main Thread.
+- Repeated database queries for identical data.
+- N+1 query patterns.
+- Inefficient pagination.
+- Loading unnecessarily large datasets.
+- Missing indexes when query patterns and schema justify them.
+- Repeated serialization and deserialization.
+- Unnecessary database writes.
+- Incorrect transaction boundaries.
+
+Do not recommend database indexes without inspecting the query and schema.
+
+## 7. Network performance
+
+Verify:
+
+- Duplicate HTTP requests.
+- Unnecessary sequential requests.
+- Missing pagination for large datasets.
+- Excessive polling.
+- Unnecessary payload transformations.
+- Repeated requests caused by UI lifecycle or recomposition.
+- Missing caching when the data semantics allow it.
+- Large response processing on the Main Thread.
+- Incorrect retry strategies causing repeated work.
+
+Do not report missing caching as a violation when caching could create stale-data or consistency problems.
+
+## 8. Memory allocations and object creation
+
+Verify:
+
+- Repeated creation of expensive objects.
+- Unnecessary temporary objects in frequently executed paths.
+- Excessive conversions and copies.
+- Repeated creation of formatters, parsers or other expensive utilities.
+- Large intermediate collections.
+- Unnecessary bitmap decoding or transformation.
+- Unnecessary object creation in Compose rendering paths.
+
+Avoid recommending object pooling unless there is evidence that allocations are a meaningful bottleneck.
+
+## 9. Images and resources
+
+Verify:
+
+- Loading images at resolutions significantly larger than required.
+- Repeated image decoding.
+- Incorrect image caching behavior.
+- Unnecessary bitmap transformations.
+- Large image resources.
+- Inefficient image loading inside scrolling lists.
+- Unnecessary image reloads during state changes.
+
+Consider image loading libraries such as Coil or Glide and inspect their configuration before reporting.
+
+## 10. Startup performance
+
+Verify:
+
+- Excessive initialization during application startup.
+- Unnecessary work inside `Application.onCreate`.
+- Eager initialization of dependencies that are not immediately required.
+- Synchronous SDK initialization.
+- Expensive dependency graphs.
+- Unnecessary disk and network operations during startup.
+- Excessive initialization of screens or modules.
+
+Distinguish cold, warm and hot startup when profiling data is available.
+
+## 11. Severity classification
+
+| Severity | Criteria |
+|---|---|
+| Critical | Reproducible ANR, severe UI blocking or major performance regression affecting core functionality. |
+| High | Significant main-thread work, severe scrolling degradation or expensive repeated operations. |
+| Medium | Inefficient processing, unnecessary repeated work or avoidable allocations with meaningful impact. |
+| Low | Minor optimization opportunity without demonstrated user impact. |
+
+Do not classify a theoretical optimization as Critical or High.
+
+## 12. Audit workflow
+
+1. Inspect project structure and Android modules.
+2. Identify relevant application entry points.
+3. Inspect the modified files first when reviewing a PR.
+4. Trace expensive operations through their callers.
+5. Inspect dispatcher, lifecycle and state ownership.
+6. Identify execution frequency and affected data volume when possible.
+7. Search for related implementations and existing optimizations.
+8. Validate each finding against actual code evidence.
+9. Prioritize findings by severity and confidence.
+10. Produce the audit report without modifying source files.
+
+## 13. Required output
+
+# Android Performance Audit Report
+
+## Executive summary
+
+- Files analyzed:
+- Critical findings:
+- High findings:
+- Medium findings:
+- Low findings:
+- Overall performance risk:
+
+## Findings
+
+For each finding:
+
+- **ID:** PERF-001
+- **Severity:** Critical / High / Medium / Low
+- **Confidence:** High / Medium / Low
+- **File:** Exact file path
+- **Line:** Exact line or range
+- **Component:** Affected class or function
+- **Rule:** Performance rule violated
+- **Evidence:** Relevant code excerpt
+- **Problem:** Explanation of the performance impact
+- **Recommendation:** Suggested correction
+- **Validation:** Suggested test or profiling method
+
+## Positive observations
+
+List important performance practices already implemented correctly.
+
+## Recommended profiling
+
+When relevant, recommend:
+
+- Android Studio CPU Profiler.
+- Android Studio Memory Profiler.
+- Android Studio System Trace.
+- Macrobenchmark.
+- Microbenchmark.
+- Baseline Profiles.
+- Perfetto.
+- JankStats.
+
+Do not claim a performance regression is measured unless profiling evidence exists.
+
+## 14. Audit restrictions
+
+- Do not modify source code.
+- Do not invent performance metrics.
+- Do not report speculative issues as confirmed defects.
+- Do not report the same root cause multiple times.
+- Do not recommend optimizations that reduce code clarity without meaningful benefit.
+- Do not confuse architectural preferences with performance defects.
+- Always distinguish static code observations from measured performance problems.
+- If evidence is insufficient, mark the finding as requiring profiling.
+
+## 15. Official references
+
+- https://developer.android.com/topic/performance
+- https://developer.android.com/topic/performance/appstartup
+- https://developer.android.com/topic/performance/benchmarking/benchmarking-overview
+- https://developer.android.com/develop/ui/compose/performance
+- https://developer.android.com/topic/performance/vitals
+- https://developer.android.com/studio/profile
+- https://developer.android.com/topic/performance/threads
