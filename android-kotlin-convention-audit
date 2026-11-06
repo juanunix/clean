@@ -1,0 +1,685 @@
+---
+name: android-kotlin-convention-audit
+description: >
+  Verifies Kotlin source code against official Kotlin coding conventions
+  and project-specific style rules. Audits naming, formatting, imports,
+  file organization, declarations, Kotlin idioms, visibility, properties,
+  functions, classes, and language usage. Use when reviewing or validating
+  Kotlin code in Android, Kotlin Multiplatform, or JVM projects.
+---
+
+# Kotlin Convention Audit
+
+## 1. Objective
+
+Analyze Kotlin source code and identify violations of Kotlin Coding Conventions.
+
+The audit must:
+
+- Validate official Kotlin naming conventions.
+- Validate source file organization.
+- Validate formatting and indentation.
+- Validate declaration ordering.
+- Validate imports.
+- Validate idiomatic Kotlin usage.
+- Identify redundant language constructs.
+- Identify inconsistent conventions.
+- Respect existing project-specific rules.
+- Report findings with exact file and line references.
+
+Do not modify source code unless explicitly requested.
+
+## 2. Sources of Truth
+
+Use the following priority:
+
+1. Project-specific conventions documented in the repository.
+2. Existing `.editorconfig` configuration.
+3. Existing ktlint configuration.
+4. Existing Detekt configuration.
+5. Official Kotlin Coding Conventions.
+
+Official reference:
+
+https://kotlinlang.org/docs/coding-conventions.html
+
+Do not override explicit project conventions with personal preferences.
+
+Do not treat every official recommendation as a mandatory compiler rule.
+
+## 3. Naming Conventions
+
+### 3.1 Packages
+
+Rules:
+
+- Package names must use lowercase letters.
+- Avoid underscores in package names.
+- Avoid unnecessary multi-word package names.
+- Package names must represent the code's organization.
+- Avoid inconsistent package naming.
+
+Example:
+
+```kotlin
+// Incorrect
+package br.com.claro.flex.payment_feature
+
+// Correct
+package br.com.claro.flex.payment
+```
+
+### 3.2 Classes, Interfaces, Objects, and Type Aliases
+
+Rules:
+
+- Use UpperCamelCase.
+- Names should represent a clear concept.
+- Avoid meaningless names.
+- Avoid unnecessary abbreviations.
+- Use consistent acronym capitalization.
+
+Examples:
+
+```kotlin
+class PaymentRepository
+
+interface UserDataSource
+
+object PaymentValidator
+
+typealias PaymentCallback = (Payment) -> Unit
+```
+
+Acronym convention:
+
+```kotlin
+XmlParser
+HttpClient
+IOStream
+```
+
+### 3.3 Functions
+
+Rules:
+
+- Use lowerCamelCase.
+- Prefer verb-based names.
+- Names must describe behavior.
+- Avoid underscores.
+- Avoid misleading names.
+- Use class-like names only for applicable factory functions and Unit-returning Composables.
+
+Examples:
+
+```kotlin
+fun validatePayment()
+
+fun getUserProfile()
+
+fun calculateTotal()
+```
+
+### 3.4 Properties and Variables
+
+Rules:
+
+- Use lowerCamelCase.
+- Prefer meaningful names.
+- Avoid unnecessary abbreviations.
+- Prefer `val` over `var` when mutation is unnecessary.
+- Avoid misleading Boolean names.
+- Avoid unnecessary prefixes and suffixes.
+
+### 3.5 Constants
+
+Rules:
+
+- `const val` constants should use SCREAMING_SNAKE_CASE.
+- Top-level or object-level deeply immutable constant values should follow the official naming convention.
+- Properties containing behavior or mutable data should use lowerCamelCase.
+- Do not classify every `val` as a constant.
+
+Example:
+
+```kotlin
+const val MAX_RETRY_COUNT = 3
+
+val defaultPaymentMethod = PaymentMethod.CREDIT_CARD
+```
+
+### 3.6 Enum Constants
+
+Either of the following may be accepted:
+
+```kotlin
+enum class PaymentStatus {
+    PENDING,
+    APPROVED,
+    REJECTED
+}
+```
+
+Or:
+
+```kotlin
+enum class PaymentStatus {
+    Pending,
+    Approved,
+    Rejected
+}
+```
+
+Respect the project's established convention.
+
+### 3.7 Backing Properties
+
+When a public property and its private backing property represent the same conceptual value, use the underscore prefix for the backing property.
+
+```kotlin
+private val _paymentState =
+    MutableStateFlow(PaymentState.Idle)
+
+val paymentState: StateFlow<PaymentState> =
+    _paymentState.asStateFlow()
+```
+
+## 4. Source File Organization
+
+Rules:
+
+- File names must describe their contents.
+- A file containing a single class or interface should generally use that declaration's name.
+- Avoid meaningless file names such as `Util.kt`, `Common.kt`, or `Helper.kt` when a meaningful name is possible.
+- Related declarations may coexist in the same file.
+- Avoid unrelated declarations in the same file.
+- Keep file size reasonable.
+- Follow package-to-directory structure.
+- Keep related extension functions close to the declarations they extend.
+- Avoid creating files only to accumulate unrelated extensions.
+
+Examples:
+
+```text
+PaymentRepository.kt
+PaymentRepositoryImpl.kt
+PaymentDto.kt
+PaymentMapper.kt
+PaymentExtensions.kt
+```
+
+Do not enforce one-class-per-file as an absolute rule.
+
+## 5. Class Layout
+
+Validate the following declaration order:
+
+1. Property declarations and initializer blocks.
+2. Secondary constructors.
+3. Method declarations.
+4. Companion object.
+
+Additional rules:
+
+- Keep related methods together.
+- Do not sort methods alphabetically.
+- Keep overloaded methods together.
+- Keep interface implementation members in the same order as the interface when practical.
+- Place nested classes close to their usage.
+- Follow consistent declaration organization.
+
+## 6. Formatting Rules
+
+### 6.1 Indentation
+
+Rules:
+
+- Use four spaces.
+- Do not use tabs.
+- Follow configured formatter rules.
+
+### 6.2 Whitespace
+
+Rules:
+
+- Use spaces around binary operators.
+- Avoid spaces around unary operators.
+- Use spaces after control-flow keywords.
+- Do not add spaces around `.` or `?.`.
+- Do not add spaces inside parentheses or brackets.
+- Use a space after `//`.
+- Do not add spaces around type parameter brackets.
+- Avoid unnecessary horizontal alignment.
+
+### 6.3 Colons
+
+Rules:
+
+- Use a space before `:` when separating a type from a supertype.
+- Use a space after `:`.
+- Do not add a space before `:` when declaring a property type.
+
+### 6.4 Class Headers
+
+Rules:
+
+- Keep short class declarations on one line when readable.
+- Break long constructor parameter lists into multiple lines.
+- Use consistent indentation.
+- Format supertype lists consistently.
+- Avoid excessively long declaration headers.
+
+### 6.5 Function Headers
+
+Rules:
+
+- Keep short signatures on one line when practical.
+- Break long parameter lists into multiple lines.
+- Use consistent parameter indentation.
+- Prefer expression bodies for simple single-expression functions.
+- Avoid unnecessary explicit Unit return types.
+
+### 6.6 Trailing Commas
+
+Rules:
+
+- Follow the project's configured trailing comma policy.
+- Prefer trailing commas in multiline declarations.
+- Do not report missing trailing commas if the project explicitly disables them.
+
+### 6.7 Semicolons
+
+Rules:
+
+- Avoid unnecessary semicolons.
+- Kotlin statements should normally be separated by line breaks.
+
+### 6.8 String Templates
+
+Rules:
+
+- Prefer string templates over concatenation.
+- Avoid unnecessary braces around simple variable interpolation.
+
+Example:
+
+```kotlin
+// Avoid
+"Hello, " + userName
+
+// Prefer
+"Hello, $userName"
+```
+
+## 7. Imports
+
+Rules:
+
+- Avoid wildcard imports unless the project explicitly permits them.
+- Avoid unused imports.
+- Avoid duplicate imports.
+- Avoid importing declarations from the same package unnecessarily.
+- Follow consistent import ordering.
+- Avoid unnecessary aliases.
+- Use import aliases when they resolve meaningful naming conflicts.
+- Do not modify import order based on personal preference when the formatter defines it.
+
+## 8. Kotlin Idioms
+
+### 8.1 Immutability
+
+Rules:
+
+- Prefer `val` when mutation is unnecessary.
+- Prefer immutable collection interfaces when mutation is not required.
+- Avoid exposing mutable collections unnecessarily.
+- Avoid unnecessary mutable state.
+
+### 8.2 Default Parameters
+
+Prefer default parameter values over unnecessary overloads.
+
+```kotlin
+fun getPayment(id: String = DEFAULT_PAYMENT_ID)
+```
+
+Do not report overloads when they represent meaningfully different behavior.
+
+### 8.3 Expression Bodies
+
+Prefer expression bodies for simple functions.
+
+```kotlin
+fun calculateTotal(price: Double, tax: Double) =
+    price + tax
+```
+
+Do not force expression bodies when block bodies improve readability.
+
+### 8.4 Conditional Expressions
+
+Rules:
+
+- Prefer `if` for binary conditions.
+- Prefer `when` for multiple alternatives.
+- Prefer expression forms when they improve clarity.
+- Avoid unnecessary return statements in conditional expressions.
+- Use explicit checks for nullable Boolean values.
+
+### 8.5 Loops and Collections
+
+Rules:
+
+- Prefer collection operations when they improve readability.
+- Prefer regular `for` loops over `forEach` when appropriate.
+- Avoid complex chained transformations when a loop is clearer.
+- Consider performance implications.
+- Prefer `..<` for exclusive ranges when applicable.
+
+### 8.6 String Handling
+
+Rules:
+
+- Prefer string templates.
+- Prefer multiline strings when appropriate.
+- Use `trimIndent()` or `trimMargin()` when suitable.
+- Avoid unnecessary escaping.
+
+### 8.7 Scope Functions
+
+Evaluate correct usage of:
+
+- `let`
+- `run`
+- `with`
+- `apply`
+- `also`
+
+Rules:
+
+- Avoid unnecessary nesting.
+- Avoid ambiguous receiver usage.
+- Avoid scope functions that make code harder to read.
+- Do not report scope function usage merely because another alternative exists.
+
+### 8.8 Extension Functions
+
+Rules:
+
+- Prefer extension functions when behavior naturally operates on a receiver.
+- Restrict visibility where possible.
+- Avoid unnecessary extension functions.
+- Avoid extensions that introduce hidden side effects.
+- Avoid unrelated extension functions in the same file.
+
+### 8.9 Infix Functions
+
+Rules:
+
+- Use infix functions only when the operation is semantically appropriate.
+- Avoid infix functions that mutate receivers.
+- Avoid infix functions that make code less readable.
+
+### 8.10 Redundant Constructs
+
+Detect:
+
+- Unnecessary semicolons.
+- Redundant Unit return types.
+- Redundant type declarations.
+- Redundant string interpolation braces.
+- Unnecessary syntax highlighted by the IDE.
+- Redundant modifiers.
+- Unnecessary explicit return statements.
+
+Do not remove explicit declarations when they are required by the project's API conventions.
+
+## 9. Visibility and Modifiers
+
+Rules:
+
+- Omit redundant `public` modifiers in ordinary application code.
+- Use the minimum visibility required.
+- Avoid unnecessarily public declarations.
+- Follow the official modifier order.
+- Place annotations before modifiers.
+- Avoid unnecessary `open`.
+- Avoid exposing internal implementation details.
+
+For libraries, explicitly declared visibility and types may be required by the project's API policy.
+
+Do not apply library rules automatically to Android application modules.
+
+## 10. Documentation Comments
+
+Rules:
+
+- Use KDoc for public APIs when documentation is required.
+- Avoid unnecessary comments that repeat the code.
+- Comments should explain intent, constraints, or non-obvious behavior.
+- Keep comments accurate.
+- Avoid obsolete comments.
+- Prefer meaningful names over explanatory comments.
+- Follow the project's documentation requirements.
+
+Do not require KDoc for every private function.
+
+## 11. Android and Compose Conventions
+
+Inspect:
+
+- Composable function names.
+- Modifier parameter placement.
+- Modifier defaults.
+- State parameter organization.
+- Callback naming.
+- Preview naming.
+- Kotlin file organization.
+
+Rules:
+
+- Unit-returning Composables should use the official class-like naming convention.
+- Follow the project's standard for Modifier parameters.
+- Avoid inconsistent parameter ordering.
+- Use meaningful callback names.
+- Avoid unnecessary explicit types.
+- Follow Kotlin conventions inside Android-specific code.
+- Respect existing Compose-specific project rules.
+
+Do not treat Compose architecture violations as Kotlin convention violations. Those belong to the Clean Architecture or Clean Code audits.
+
+## 12. Multiplatform Conventions
+
+When Kotlin Multiplatform is detected:
+
+- Respect source set organization.
+- Validate platform-specific file suffixes when applicable.
+- Avoid duplicate JVM file facade names.
+- Follow the project's `expect` and `actual` organization.
+- Avoid platform-specific dependencies in common source sets.
+- Respect the established project structure.
+
+Do not apply Android-only rules to common Kotlin code.
+
+## 13. Tool-Based Validation
+
+When available, use:
+
+### ktlint
+
+Use ktlint to verify formatting and official Kotlin conventions.
+
+### Detekt
+
+Use Detekt to identify configured style and code-quality issues.
+
+### Kotlin Compiler
+
+Use compiler diagnostics to identify syntax and language errors.
+
+### IntelliJ IDEA / Android Studio
+
+Use the configured Kotlin code style and inspections.
+
+Tool output is evidence, not an excuse to duplicate findings.
+
+Do not claim a tool was executed unless it was actually executed.
+
+Do not modify code through auto-correction unless explicitly requested.
+
+## 14. Analysis Workflow
+
+### Step 1 — Discover
+
+Identify:
+
+- Kotlin source files.
+- Android or KMP project structure.
+- `.editorconfig`.
+- ktlint configuration.
+- Detekt configuration.
+- Existing conventions.
+- Kotlin version.
+
+### Step 2 — Analyze
+
+For each file:
+
+1. Validate naming.
+2. Validate file organization.
+3. Validate imports.
+4. Validate formatting.
+5. Validate declaration ordering.
+6. Validate language idioms.
+7. Validate modifiers and visibility.
+8. Validate documentation.
+9. Validate platform-specific conventions.
+
+### Step 3 — Compare Against Project Rules
+
+Check whether the issue is already covered by:
+
+- `.editorconfig`.
+- ktlint.
+- Detekt.
+- IDE configuration.
+- Existing team conventions.
+
+### Step 4 — Validate Findings
+
+Before reporting:
+
+- Verify the exact file and line.
+- Avoid duplicate findings.
+- Avoid personal style preferences.
+- Distinguish mandatory rules from recommendations.
+- Respect project-specific exceptions.
+
+### Step 5 — Generate Report
+
+## 15. Severity Classification
+
+### HIGH
+
+A convention violation that causes inconsistency or can introduce technical problems.
+
+Examples:
+
+- Invalid package organization.
+- Incorrect declaration naming that conflicts with established APIs.
+- Duplicate JVM file facade naming.
+- Incorrect visibility that exposes implementation details.
+- Violations of explicit project-required conventions.
+
+### MEDIUM
+
+Clear official Kotlin convention violations.
+
+Examples:
+
+- Incorrect naming.
+- Incorrect indentation.
+- Unused imports.
+- Incorrect declaration ordering.
+- Missing configured trailing commas.
+- Unnecessary syntax.
+- Inconsistent formatting.
+
+### LOW
+
+Optional improvements.
+
+Examples:
+
+- A more idiomatic expression.
+- A readability improvement.
+- A preferred alternative to a valid Kotlin construct.
+
+Do not report LOW findings unless explicitly requested.
+
+## 16. Output Format
+
+# Kotlin Convention Audit
+
+## Summary
+
+- Project:
+- Kotlin version:
+- Modules analyzed:
+- Files analyzed:
+- High findings:
+- Medium findings:
+- Low findings:
+- Overall assessment:
+
+## Findings
+
+### [SEVERITY] [KCV-RULE-ID] Short Description
+
+- **File:** Exact path.
+- **Line:** Exact line or range.
+- **Declaration:** Class, function, or property.
+- **Violation:** What is wrong.
+- **Evidence:** Actual code.
+- **Convention:** Official Kotlin or project-specific rule.
+- **Recommendation:** Concrete correction.
+- **Confidence:** High, Medium, or Low.
+
+Example:
+
+### [MEDIUM] [KCV-NAMING-001] Incorrect function naming
+
+- **File:** `feature/payment/PaymentRepository.kt`
+- **Line:** 28
+- **Declaration:** `GetPayment`
+- **Violation:** Function uses UpperCamelCase.
+- **Evidence:** `fun GetPayment(id: String)`
+- **Convention:** Kotlin functions use lowerCamelCase.
+- **Recommendation:** Rename to `getPayment`.
+- **Confidence:** High.
+
+## 17. Rules for the Auditor
+
+- Analyze actual Kotlin code.
+- Never invent file paths or line numbers.
+- Never report a violation without evidence.
+- Do not modify source code.
+- Do not enforce personal preferences.
+- Do not report valid Kotlin syntax as incorrect.
+- Do not require every declaration to be in a separate file.
+- Do not enforce arbitrary line limits.
+- Do not confuse Clean Code with Kotlin conventions.
+- Do not confuse Clean Architecture with Kotlin conventions.
+- Respect project-specific rules.
+- Prefer ktlint or Detekt for deterministic style checks.
+- Prioritize actionable findings.
+
+## 18. Final Objective
+
+Produce a reliable Kotlin convention report that explains:
+
+1. Which convention is violated.
+2. Where the violation exists.
+3. Why it is inconsistent.
+4. What the correct convention is.
+5. How to fix it.
