@@ -1,0 +1,684 @@
+---
+name: android-compose-stability-audit
+description: >
+  Audits Jetpack Compose stability, parameter stability, recomposition behavior,
+  skipping, state management, immutable UI models, annotations, lambdas,
+  collections, and compiler stability reports. Use when reviewing Compose
+  performance, unnecessary recompositions, unstable parameters, or UI state
+  architecture in Android and Kotlin Multiplatform projects.
+---
+
+# Jetpack Compose Stability Audit
+
+## 1. Objective
+
+Analyze a Jetpack Compose codebase to identify stability problems that may affect recomposition, skipping, rendering performance, or state correctness.
+
+The audit must:
+
+- Identify unstable parameters.
+- Determine why types are considered Stable or Unstable.
+- Verify correct usage of `@Stable` and `@Immutable`.
+- Analyze UI state models.
+- Inspect collection stability.
+- Analyze recomposition and skipping behavior.
+- Inspect state ownership and state reads.
+- Validate Compose compiler stability reports when available.
+- Identify unnecessary recompositions when evidence supports the finding.
+- Recommend the smallest effective correction.
+
+Do not modify source code unless explicitly requested.
+
+## 2. Core Concepts
+
+### 2.1 Stability
+
+A type is stable when Compose can rely on its observable behavior to determine whether its value has changed.
+
+Stability affects whether a Composable can be skipped during recomposition.
+
+A type can be:
+
+- Stable.
+- Unstable.
+- Immutable.
+
+Immutable is a stronger property than Stable.
+
+### 2.2 Immutable
+
+An immutable type cannot change its observable state after construction.
+
+Example:
+
+```kotlin
+@Immutable
+data class UserUiModel(
+    val id: String,
+    val name: String
+)
+```
+
+This annotation is valid only when the entire object satisfies the immutability contract.
+
+### 2.3 Stable
+
+A stable type may contain mutable state, provided its observable changes are correctly controlled and observable by Compose.
+
+Example:
+
+```kotlin
+@Stable
+class PaymentUiState {
+
+    var amount by mutableStateOf("")
+        private set
+
+    fun updateAmount(value: String) {
+        amount = value
+    }
+}
+```
+
+Do not confuse a stable mutable type with an immutable type.
+
+### 2.4 Unstable
+
+A type may be considered unstable when Compose cannot reliably determine whether its observable behavior has changed.
+
+Potential causes:
+
+- Mutable properties.
+- Unstable nested properties.
+- Unsupported collection types.
+- Interface-typed properties.
+- External classes without stability guarantees.
+- Mutable objects that are not observable by Compose.
+
+Unstable does not automatically mean incorrect or slow.
+
+The auditor must evaluate the actual performance impact.
+
+## 3. Stability Analysis Workflow
+
+### Step 1 — Discover the Project
+
+Identify:
+
+- Compose version.
+- Kotlin version.
+- Compose compiler configuration.
+- Compose compiler plugin.
+- Strong Skipping configuration.
+- Stability configuration files.
+- Stability reports.
+- UI state models.
+- Composable functions.
+- Module boundaries.
+
+Inspect:
+
+```text
+build.gradle.kts
+settings.gradle.kts
+gradle/libs.versions.toml
+composeCompiler configuration
+stability configuration files
+```
+
+Do not assume that the project uses a particular compiler version.
+
+### Step 2 — Identify Relevant Composables
+
+Analyze:
+
+- Screen-level Composables.
+- Reusable UI components.
+- Components receiving complex models.
+- Components receiving callbacks.
+- Components containing expensive operations.
+- Components with frequent state updates.
+- LazyColumn and LazyRow items.
+- Components with animation state.
+
+### Step 3 — Analyze Parameters
+
+For every relevant Composable:
+
+1. Identify its parameters.
+2. Determine the stability of each parameter.
+3. Inspect the parameter's underlying type.
+4. Inspect nested properties.
+5. Identify mutable collections.
+6. Identify external or interface types.
+7. Check compiler reports when available.
+8. Determine whether the parameter affects skipping.
+
+Do not assume a type is unstable based only on its name.
+
+### Step 4 — Analyze Recomposition
+
+Inspect:
+
+- State reads.
+- State writes.
+- State ownership.
+- Recomposition scope.
+- Parameter changes.
+- Lambda captures.
+- `remember` usage.
+- `derivedStateOf` usage.
+- `LaunchedEffect` keys.
+- Lazy layout keys.
+- Expensive calculations.
+
+Determine whether a recomposition is:
+
+- Expected.
+- Unnecessary.
+- Potentially expensive.
+- Incorrectly triggered.
+- Caused by an unstable parameter.
+- Caused by an incorrect state design.
+
+### Step 5 — Validate Findings
+
+Before reporting:
+
+- Verify the actual code.
+- Verify the type's stability.
+- Check the Compose compiler version.
+- Check Strong Skipping behavior.
+- Inspect compiler reports when available.
+- Confirm the relevant recomposition path.
+- Avoid claiming performance problems without evidence.
+- Avoid recommending annotations as a default solution.
+
+## 4. Stability Rules
+
+### 4.1 UI Models
+
+Rules:
+
+- UI models should favor immutability.
+- Prefer `val` properties.
+- Avoid mutable collections in UI models.
+- Avoid exposing mutable internal state.
+- Avoid mutable objects that Compose cannot observe.
+- Avoid unnecessary inheritance in UI state models.
+- Avoid mixing UI state with infrastructure models.
+- Prefer explicit state representations.
+- Ensure nested properties satisfy the expected stability contract.
+
+Example:
+
+```kotlin
+data class StoreDetailsUiState(
+    val storeName: String,
+    val selectedPlan: PlanUiModel?,
+    val isLoading: Boolean
+)
+```
+
+Do not report a data class as unstable simply because it is a data class.
+
+### 4.2 `@Immutable`
+
+Rules:
+
+- Use `@Immutable` only when the immutability contract is satisfied.
+- Verify all properties.
+- Verify nested object stability.
+- Verify collection behavior.
+- Avoid annotating types containing mutable state.
+- Avoid using annotations to hide instability.
+- Do not assume `val` guarantees deep immutability.
+- Do not assume a Kotlin `data class` is automatically immutable.
+
+Report false immutability guarantees as HIGH severity.
+
+Example of a violation:
+
+```kotlin
+@Immutable
+data class StoreUiModel(
+    val name: String,
+    val plans: MutableList<PlanUiModel>
+)
+```
+
+The mutable list violates the intended immutable contract.
+
+### 4.3 `@Stable`
+
+Rules:
+
+- Verify that observable state changes are correctly observable.
+- Verify that equality behavior is consistent with the stability contract.
+- Verify that public properties do not change silently.
+- Verify nested mutable objects.
+- Avoid using `@Stable` simply to suppress compiler warnings.
+- Avoid applying it to arbitrary interfaces without a justified contract.
+
+Example:
+
+```kotlin
+@Stable
+class StoreSelectionState {
+
+    var selectedIndex by mutableIntStateOf(0)
+        private set
+
+    fun select(index: Int) {
+        selectedIndex = index
+    }
+}
+```
+
+This can be valid when the type's observable state follows the stability contract.
+
+### 4.4 `@ReadOnlyComposable`
+
+Do not confuse `@ReadOnlyComposable` with `@Stable` or `@Immutable`.
+
+Report misuse only when it causes a concrete correctness or architectural problem.
+
+## 5. Collection Stability
+
+Analyze:
+
+- `List`
+- `Set`
+- `Map`
+- `MutableList`
+- `MutableSet`
+- `MutableMap`
+- Custom collection types.
+- Persistent immutable collections.
+
+Rules:
+
+- Do not assume standard Kotlin collections are considered immutable by Compose.
+- Verify compiler behavior for the project's version.
+- Prefer immutable collection implementations when required.
+- Avoid mutable collection updates that do not trigger observable state.
+- Avoid mutating a collection inside an unchanged state object.
+- Verify that UI observes collection changes correctly.
+
+Example:
+
+```kotlin
+data class StoreUiState(
+    val plans: List<PlanUiModel>
+)
+```
+
+Potentially unstable:
+
+```kotlin
+data class StoreUiState(
+    val plans: MutableList<PlanUiModel>
+)
+```
+
+Possible alternative:
+
+```kotlin
+import kotlinx.collections.immutable.ImmutableList
+
+data class StoreUiState(
+    val plans: ImmutableList<PlanUiModel>
+)
+```
+
+Do not automatically recommend persistent collections unless they provide a real benefit or satisfy a required stability contract.
+
+## 6. Strong Skipping
+
+Strong Skipping changes how Compose handles Composables with unstable parameters.
+
+Rules:
+
+- Identify whether Strong Skipping is enabled.
+- Determine the project's compiler version.
+- Avoid assuming unstable parameters always prevent skipping.
+- Verify how parameters are compared.
+- Identify cases where unstable parameters cause unnecessary recompositions.
+- Consider lambda memoization behavior.
+- Do not recommend `@Stable` simply because a parameter is unstable.
+- Do not recommend disabling Strong Skipping without evidence.
+
+When Strong Skipping is enabled, unstable parameters may still allow a Composable to be skipped using instance equality.
+
+Therefore, stability and recomposition must be analyzed separately.
+
+## 7. State Management
+
+### 7.1 State Ownership
+
+Rules:
+
+- State must have a clear owner.
+- Avoid duplicating the same state in ViewModel and Composable.
+- Avoid storing derived values unnecessarily.
+- Avoid mutable state outside Compose observation.
+- Avoid state that changes without triggering the appropriate UI update.
+- Prefer immutable state snapshots for screen state.
+- Avoid unnecessary state hoisting.
+- Ensure state is hoisted when required for reuse or coordination.
+
+### 7.2 `remember`
+
+Rules:
+
+- Use `remember` for values that should survive recomposition.
+- Verify that remembered values use appropriate keys.
+- Avoid remembering values that should be recalculated.
+- Avoid capturing outdated values.
+- Avoid using `remember` to store business state.
+- Avoid using `remember` to conceal incorrect state ownership.
+
+### 7.3 `rememberUpdatedState`
+
+Rules:
+
+- Use it when a long-lived effect or callback must access the latest value without restarting.
+- Avoid using it when the effect should restart upon value changes.
+- Avoid using it unnecessarily for ordinary recomposition.
+- Verify that the captured value is genuinely expected to change.
+
+### 7.4 `derivedStateOf`
+
+Rules:
+
+- Use it when derived state changes less frequently than its inputs.
+- Avoid using it for simple calculations without a meaningful benefit.
+- Avoid unnecessary derived state.
+- Verify that its inputs are observable state.
+- Avoid using it to hide state inconsistencies.
+
+Example:
+
+```kotlin
+val showScrollToTop by remember {
+    derivedStateOf {
+        listState.firstVisibleItemIndex > 0
+    }
+}
+```
+
+This can be useful when a frequently changing input produces a less frequently changing Boolean result.
+
+### 7.5 State Reads
+
+Rules:
+
+- Identify where state is read.
+- Avoid reading frequently changing state higher in the composition tree than necessary.
+- Defer state reads when doing so reduces the affected recomposition scope.
+- Avoid moving state reads solely for theoretical optimization.
+- Verify the actual compositional impact.
+
+## 8. Lambda Stability
+
+Analyze:
+
+- Callback parameters.
+- Captured variables.
+- Remembered lambdas.
+- Lambda creation during recomposition.
+- Callback forwarding.
+- Long-lived effects.
+
+Rules:
+
+- Avoid unnecessary lambda captures.
+- Avoid capturing large objects unnecessarily.
+- Verify lambda behavior with Strong Skipping.
+- Avoid manually remembering every lambda.
+- Use `rememberUpdatedState` when a long-lived effect needs the latest captured value.
+- Avoid stale callbacks.
+- Avoid passing callbacks that are recreated unnecessarily when this causes measurable performance impact.
+
+Do not report a lambda as a performance problem merely because it is declared inline.
+
+## 9. Lazy Layout Stability
+
+Analyze:
+
+- LazyColumn.
+- LazyRow.
+- LazyGrid.
+- Item keys.
+- Content types.
+- Item parameter stability.
+- Item state.
+- Expensive item calculations.
+
+Rules:
+
+- Use stable, unique item keys when item identity matters.
+- Avoid index-based keys when items can be reordered or inserted.
+- Avoid unnecessary calculations inside item content.
+- Avoid mutable item models that do not trigger updates.
+- Consider `contentType` for heterogeneous reusable items.
+- Avoid creating unstable parameters unnecessarily.
+- Verify whether item recomposition is actually problematic.
+
+Example:
+
+```kotlin
+LazyColumn {
+    items(
+        items = state.plans,
+        key = { plan -> plan.id },
+        contentType = { "plan" }
+    ) { plan ->
+        PlanItem(plan = plan)
+    }
+}
+```
+
+## 10. Stability Configuration
+
+Inspect stability configuration files.
+
+Rules:
+
+- Verify configured types.
+- Verify package patterns.
+- Avoid broad wildcard configuration without justification.
+- Do not mark mutable types stable without satisfying the contract.
+- Do not add external classes to stability configuration without evidence.
+- Verify that configuration matches the actual implementation.
+- Avoid using configuration to suppress real stability problems.
+
+Example of a risky configuration:
+
+```text
+**
+```
+
+This effectively trusts every matched type's stability contract.
+
+Do not recommend broad trust configurations as a default solution.
+
+## 11. Compiler Stability Reports
+
+When available, inspect:
+
+- Composable reports.
+- Class stability reports.
+- Parameter stability.
+- Skippability.
+- Restartability.
+- Stability inference.
+
+Use reports to establish evidence.
+
+Example:
+
+```text
+StoreUiModel
+unstable
+  val plans: List<PlanUiModel>
+    unstable
+```
+
+Report the actual cause.
+
+Do not invent compiler report output.
+
+If reports are unavailable, state that the stability assessment is based on source analysis.
+
+## 12. Severity Classification
+
+### CRITICAL
+
+Stability-related correctness problems that can cause the UI to display stale or incorrect data.
+
+Examples:
+
+- Mutating a collection without triggering Compose observation.
+- State changes that do not update the UI.
+- Incorrect state ownership causing incorrect rendering.
+- Incorrect annotation contracts that result in observable state changes being missed.
+
+### HIGH
+
+Significant stability or performance risks.
+
+Examples:
+
+- False `@Immutable` guarantees.
+- Incorrect `@Stable` contracts.
+- Frequently changing unstable models passed into expensive composables.
+- Unnecessary recomposition supported by compiler or runtime evidence.
+- Incorrect lazy item identity causing state reuse problems.
+
+### MEDIUM
+
+Potential performance or maintainability problems.
+
+Examples:
+
+- Unstable UI models.
+- Unnecessary state duplication.
+- Incorrect `remember` keys.
+- Unnecessary derived state.
+- State reads that expand recomposition scope.
+- Missing stability optimization in a high-frequency component.
+
+### LOW
+
+Minor optimization opportunities.
+
+Examples:
+
+- Small lambda improvements.
+- Optional parameter stabilization.
+- Minor recomposition optimizations.
+
+Do not report LOW findings unless explicitly requested.
+
+## 13. Output Format
+
+# Jetpack Compose Stability Audit
+
+## Summary
+
+- Project:
+- Compose version:
+- Kotlin version:
+- Strong Skipping:
+- Compiler reports available:
+- Composables analyzed:
+- Stable models:
+- Unstable models:
+- Critical findings:
+- High findings:
+- Medium findings:
+- Overall assessment:
+
+## Stability Matrix
+
+| Type | Stability | Reason | Impact |
+|---|---|---|---|
+| StoreUiState | Stable / Unstable | Evidence | Actual impact |
+| PlanUiModel | Stable / Unstable | Evidence | Actual impact |
+
+Use actual findings. Do not invent classifications.
+
+## Findings
+
+### [SEVERITY] [CSA-RULE-ID] Short Description
+
+- **File:** Exact path.
+- **Line:** Exact line or range.
+- **Composable / Type:** Actual declaration.
+- **Parameter:** Actual parameter.
+- **Stability:** Stable / Unstable / Unknown.
+- **Evidence:** Actual code or compiler report.
+- **Problem:** What is wrong.
+- **Impact:** Correctness or performance consequence.
+- **Recommendation:** Concrete correction.
+- **Confidence:** High, Medium, or Low.
+
+Example:
+
+### [HIGH] [CSA-IMM-001] False Immutable Contract
+
+- **File:** `feature/store/StoreUiModel.kt`
+- **Line:** 12
+- **Type:** `StoreUiModel`
+- **Stability:** Incorrect immutability guarantee.
+- **Evidence:** The model contains a mutable collection.
+- **Problem:** `@Immutable` does not reflect the actual object behavior.
+- **Impact:** Compose may rely on an invalid stability contract.
+- **Recommendation:** Use an immutable collection or remove the annotation and correct state handling.
+- **Confidence:** High.
+
+## Recommended Improvements
+
+List the minimum necessary changes.
+
+## Verification Steps
+
+Recommend:
+
+1. Generate Compose compiler stability reports.
+2. Inspect unstable types.
+3. Run the affected screen.
+4. Use Layout Inspector recomposition counts when available.
+5. Verify state changes.
+6. Compare recomposition behavior before and after the correction.
+
+Do not claim performance improvements without measurements.
+
+## 14. Rules for the Auditor
+
+- Analyze actual code.
+- Never invent stability reports.
+- Never invent line numbers.
+- Do not annotate every data class with `@Immutable`.
+- Do not annotate every unstable class with `@Stable`.
+- Do not treat instability as an automatic performance defect.
+- Do not treat every recomposition as a problem.
+- Do not recommend `remember` indiscriminately.
+- Do not recommend `derivedStateOf` for every derived value.
+- Do not assume Strong Skipping is disabled.
+- Do not assume Strong Skipping eliminates every stability concern.
+- Respect Compose compiler version differences.
+- Prefer compiler evidence and runtime measurements.
+- Report correctness issues before optimization opportunities.
+
+## 15. Final Objective
+
+Produce an evidence-based audit explaining:
+
+1. Which types are stable or unstable.
+2. Why Compose considers them that way.
+3. Whether the stability affects recomposition.
+4. Whether the problem is correctness or performance.
+5. Which correction is appropriate.
+6. How to verify the correction.
