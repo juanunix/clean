@@ -1,0 +1,342 @@
+---
+name: android-memory-leak-audit
+description: >
+  Audits Android and Kotlin applications for memory leaks, retained objects,
+  lifecycle violations, incorrect Context references, observer and listener
+  leaks, coroutine retention, Fragment view leaks, and memory management
+  problems in Jetpack Compose. Use when reviewing code for memory safety,
+  investigating memory growth, or analyzing potential object retention.
+---
+
+# Android Memory Leak Audit
+
+## Objective
+
+Analyze Android application code to identify memory leaks and incorrect object retention that can cause:
+
+- Continuous memory growth.
+- Activities or Fragments remaining in memory.
+- Retained Views after lifecycle destruction.
+- Memory pressure.
+- Excessive garbage collection.
+- OutOfMemoryError.
+- Retained bitmaps and large objects.
+- Unnecessary background work.
+- Objects surviving longer than their intended lifecycle.
+
+The audit must identify the retention mechanism, not merely flag classes that contain references.
+
+## Core principles
+
+1. Object lifetime must not exceed its intended owner without justification.
+2. Activity and View references must respect their lifecycle.
+3. Context references must use the appropriate Context type.
+4. Listeners, observers and callbacks must be released.
+5. Coroutines must have an appropriate owner and cancellation policy.
+6. Views must not survive the destruction of their view hierarchy.
+7. Static references must not retain short-lived Android components.
+8. Memory findings must be supported by a plausible retention path.
+
+## 1. Context references
+
+Verify:
+
+- Static objects retaining Activity Context.
+- Singleton objects retaining Activity or Fragment references.
+- Long-lived managers storing Activity Context.
+- ViewModels storing Activity, Fragment or View references.
+- Application-scoped dependencies retaining UI objects.
+- Callbacks retaining Context unnecessarily.
+- Incorrect Context usage in repositories or domain classes.
+
+Prefer Application Context for operations that genuinely require application-wide context.
+
+Do not flag every Context reference. Inspect the reference type, owner and lifecycle.
+
+## 2. Activity and Fragment retention
+
+Verify:
+
+- Static fields holding Activity references.
+- Singletons retaining Activity instances.
+- Long-lived callbacks retaining Activities.
+- Fragments retained after navigation.
+- Incorrect Fragment references in ViewModels.
+- Fragment instances stored in long-lived managers.
+- Listeners registered without corresponding removal.
+- Dialogs and windows retaining destroyed Activities.
+- Incorrect Fragment transaction or back stack retention patterns.
+
+## 3. Fragment View lifecycle
+
+Verify:
+
+- ViewBinding retained after `onDestroyView`.
+- View references stored in Fragment properties.
+- Adapters retaining destroyed views.
+- Observers attached to the wrong lifecycle owner.
+- View callbacks retaining Fragment views.
+- RecyclerView adapters retaining old view hierarchies.
+- ComposeView or AndroidView references surviving the intended lifecycle.
+- References to binding accessed after the view lifecycle ends.
+
+When using ViewBinding in a Fragment, verify that the binding reference is cleared in `onDestroyView`.
+
+Example of a potential leak:
+
+```kotlin
+private var _binding: FragmentHomeBinding? = null
+private val binding get() = _binding!!
+```
+
+The implementation must release the binding reference when the Fragment view is destroyed.
+
+## 4. Coroutines and Flow
+
+Verify:
+
+- Coroutines launched in scopes without an appropriate lifecycle owner.
+- `GlobalScope` usage.
+- Long-running jobs without cancellation.
+- ViewModels retaining UI references through coroutine closures.
+- Flow collection continuing after the UI is destroyed.
+- Incorrect lifecycle collection.
+- SharedFlow or StateFlow retaining unnecessarily large objects.
+- CallbackFlow listeners not released in `awaitClose`.
+- Channels or subscriptions never closed.
+- Background tasks retaining Activity or Fragment references.
+- Infinite loops without cancellation checks.
+
+Inspect:
+
+- `viewModelScope`
+- `lifecycleScope`
+- `repeatOnLifecycle`
+- `LaunchedEffect`
+- `DisposableEffect`
+- `rememberCoroutineScope`
+
+Do not classify every long-lived Flow or coroutine as a leak. Verify its ownership and intended lifetime.
+
+## 5. Listeners, callbacks and observers
+
+Verify:
+
+- Event listeners registered without removal.
+- BroadcastReceivers not unregistered.
+- Location listeners not removed.
+- Sensor listeners not unregistered.
+- TextWatcher instances retained.
+- Adapter callbacks retaining destroyed screens.
+- Handler callbacks remaining queued unnecessarily.
+- Executor tasks retaining Activity instances.
+- RxJava subscriptions not disposed.
+- Event bus subscriptions not removed.
+- Observers registered repeatedly.
+
+For every registration, look for the corresponding cleanup mechanism.
+
+## 6. Jetpack Compose
+
+Verify:
+
+- Long-lived objects retaining Activity or View references.
+- Incorrect use of `remember` for objects with external resources.
+- Missing cleanup in `DisposableEffect`.
+- Listeners registered without disposal.
+- Incorrect lifecycle handling in `LaunchedEffect`.
+- Long-lived callbacks capturing obsolete UI objects.
+- Remembered objects retaining large datasets unnecessarily.
+- Composition-scoped resources surviving longer than intended.
+- Incorrect use of `rememberCoroutineScope`.
+- State holders retaining objects that are no longer required.
+
+Inspect the correct use of:
+
+- `remember`
+- `DisposableEffect`
+- `LaunchedEffect`
+- `rememberUpdatedState`
+- `rememberCoroutineScope`
+- `LocalContext`
+- `collectAsStateWithLifecycle`
+
+Example of cleanup:
+
+```kotlin
+DisposableEffect(observer) {
+    lifecycleOwner.lifecycle.addObserver(observer)
+
+    onDispose {
+        lifecycleOwner.lifecycle.removeObserver(observer)
+    }
+}
+```
+
+Do not assume `remember` itself creates a leak. Analyze the lifetime and references of the remembered object.
+
+## 7. Handlers, Threads and Executors
+
+Verify:
+
+- Non-static inner Handler classes retaining outer Activity instances.
+- Delayed callbacks retaining destroyed components.
+- Threads that never terminate.
+- Executors that are never shut down when their owner is destroyed.
+- Scheduled tasks that continue unnecessarily.
+- Runnable closures retaining UI references.
+- Incorrect thread ownership.
+
+Do not recommend shutting down application-wide executors when they are intentionally shared.
+
+## 8. Bitmap and image memory
+
+Verify:
+
+- Large bitmaps retained in static properties.
+- Image references retained after a screen is destroyed.
+- Unnecessary bitmap copies.
+- Excessive bitmap decoding.
+- Incorrect image cache ownership.
+- Large image collections held in memory.
+- Manual bitmap resource management issues.
+- Image loading callbacks retaining destroyed screens.
+
+Inspect Coil, Glide or other image loading libraries before recommending manual cleanup.
+
+## 9. Singleton and dependency injection scopes
+
+Verify:
+
+- Singleton components retaining Activity or Fragment instances.
+- Application-scoped objects retaining View references.
+- Incorrect Hilt or Koin scopes.
+- Dependency graphs with incompatible object lifetimes.
+- Global mutable references holding UI state.
+- Managers or controllers storing short-lived objects.
+
+Review the relationship between:
+
+- Singleton.
+- Application.
+- Activity.
+- Fragment.
+- ViewModel.
+- Composition.
+
+A long-lived dependency must not retain a shorter-lived dependency unless the design explicitly manages that lifecycle.
+
+## 10. Resources and registrations
+
+Verify:
+
+- ContentObservers without unregistration.
+- BroadcastReceivers without unregistration.
+- Cursor objects not closed where manual ownership requires it.
+- Closeable resources without appropriate cleanup.
+- Streams and file handles not closed.
+- Database subscriptions retained unnecessarily.
+- Native resources with incorrect ownership.
+- Sensor and location registrations without cleanup.
+
+Prefer structured resource management such as `use` for Closeable resources when appropriate.
+
+## 11. Severity classification
+
+| Severity | Criteria |
+|---|---|
+| Critical | Confirmed or strongly evidenced retention of large objects or repeated screens, with substantial memory impact or OutOfMemoryError risk. |
+| High | Activity, Fragment or View hierarchy retained beyond its lifecycle. |
+| Medium | Listener, subscription or resource retention with plausible memory growth. |
+| Low | Minor unnecessary retention or cleanup improvement without demonstrated impact. |
+
+Do not classify a potential leak as confirmed without evidence.
+
+## 12. Audit workflow
+
+1. Inspect project modules and application architecture.
+2. Identify object ownership and dependency scopes.
+3. Inspect Activities, Fragments, ViewModels and Composables.
+4. Search for static references, singletons and global state.
+5. Inspect listeners, callbacks and observer registrations.
+6. Inspect coroutine and Flow ownership.
+7. Verify lifecycle cleanup mechanisms.
+8. Trace references to potentially retained objects.
+9. Identify the suspected garbage collection root and retention path when possible.
+10. Produce findings with exact file and line evidence.
+
+When profiling data is available, compare the static findings with heap dumps and allocation behavior.
+
+## 13. Required output
+
+# Android Memory Leak Audit Report
+
+## Executive summary
+
+- Files analyzed:
+- Critical findings:
+- High findings:
+- Medium findings:
+- Low findings:
+- Overall memory risk:
+
+## Findings
+
+For each finding:
+
+- **ID:** MEM-001
+- **Severity:** Critical / High / Medium / Low
+- **Confidence:** High / Medium / Low
+- **File:** Exact file path
+- **Line:** Exact line or range
+- **Component:** Affected class or function
+- **Rule:** Memory management rule violated
+- **Evidence:** Relevant code excerpt
+- **Retained object:** Activity, Fragment, View, Context, Bitmap, Listener or other object
+- **Retention path:** How the object can remain reachable
+- **Lifecycle mismatch:** Expected lifetime versus actual lifetime
+- **Problem:** Explanation of the potential memory impact
+- **Recommendation:** Suggested correction
+- **Validation:** Suggested profiling or test procedure
+
+## Positive observations
+
+List correct lifecycle management and resource cleanup practices.
+
+## Recommended validation tools
+
+When relevant, recommend:
+
+- Android Studio Memory Profiler.
+- Android Studio Heap Dump.
+- LeakCanary.
+- Android Studio Allocation Tracking.
+- Perfetto.
+- StrictMode.
+
+Do not claim a leak is confirmed solely from a static code inspection.
+
+## 14. Audit restrictions
+
+- Do not modify source code.
+- Do not invent retention paths.
+- Do not classify every long-lived object as a leak.
+- Do not recommend unnecessary cleanup of objects owned by the Android framework.
+- Do not recommend manual garbage collection as a leak fix.
+- Do not confuse high memory usage with a memory leak.
+- Do not report the same retention problem multiple times.
+- Distinguish confirmed leaks from potential leaks.
+- Always identify the ownership and lifecycle mismatch.
+- If a retention path cannot be established, request heap profiling evidence.
+
+## 15. Official references
+
+- https://developer.android.com/topic/performance/memory
+- https://developer.android.com/topic/performance/memory-leaks
+- https://developer.android.com/studio/profile/memory-profiler
+- https://developer.android.com/topic/performance/vitals
+- https://developer.android.com/topic/libraries/architecture/views/coroutines-views
+- https://developer.android.com/develop/ui/compose/side-effects
+
+Additional tool:
+- https://square.github.io/leakcanary/
