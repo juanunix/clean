@@ -1,0 +1,1399 @@
+# Android Multi-Agent Code Audit System
+
+**Technical Specification and Implementation Architecture**
+
+| Property | Value |
+|---|---|
+| Version | 1.0 |
+| Platform | Claude Code |
+| Languages | Kotlin / Java |
+| Framework | Android / Jetpack Compose |
+| Architecture | Multi-Agent Orchestration |
+| Output Formats | Markdown + JSON |
+| Integration Target | Gerrit / Git / CI/CD |
+
+---
+
+# 1. Project Overview
+
+## 1.1 Objective
+
+Build an automated Android code auditing system based on multiple specialized agents.
+
+Instead of relying on a single agent to analyze the entire codebase, the system distributes the auditing process among independent agents, each responsible for a specific technical domain.
+
+A central agent, called `android-audit-orchestrator`, coordinates the execution of all specialized agents and consolidates their results.
+
+Each agent must have:
+
+- Clearly defined responsibilities.
+- Dedicated technical skills.
+- Independent auditing rules.
+- Access to the Android source code.
+- The ability to identify code violations.
+- Independent reporting capabilities.
+- Structured and verifiable findings.
+
+The system must prioritize real defects, minimize false positives, and provide actionable recommendations.
+
+## 1.2 Main Goals
+
+1. Analyze complete Android projects.
+2. Analyze only modified files in Pull Requests or Gerrit changes.
+3. Execute independent audits by technical specialization.
+4. Support parallel agent execution when possible.
+5. Identify real problems and avoid speculative findings.
+6. Detect duplicate findings across agents.
+7. Generate individual reports for every agent.
+8. Generate a consolidated executive report.
+9. Provide concrete recommendations for fixing identified problems.
+10. Support future Gerrit and CI/CD integration.
+
+---
+
+# 2. System Architecture
+
+The system consists of four main components.
+
+| Component | Responsibility |
+|---|---|
+| Orchestrator | Coordinates agents and controls the auditing workflow. |
+| Agents | Execute independent audits within their technical domains. |
+| Skills | Provide the technical knowledge and auditing rules used by agents. |
+| Report Aggregator | Validates, deduplicates, consolidates, and prioritizes findings. |
+
+## 2.1 Architecture Diagram
+
+```mermaid
+flowchart TD
+    U["User / CLI"] --> O["Android Audit Orchestrator"]
+
+    O --> D["Project Discovery"]
+    D --> S["Scope Analyzer"]
+    S --> P["Agent Dispatcher"]
+
+    P --> A1["Architecture Agent"]
+    P --> A2["Kotlin Agent"]
+    P --> A3["Compose Agent"]
+    P --> A4["Performance Agent"]
+    P --> A5["Memory Agent"]
+    P --> A6["Testing Agent"]
+    P --> A7["Security Agent"]
+    P --> A8["Build Agent"]
+
+    A1 --> R["Report Validator"]
+    A2 --> R
+    A3 --> R
+    A4 --> R
+    A5 --> R
+    A6 --> R
+    A7 --> R
+    A8 --> R
+
+    R --> X["Deduplication Engine"]
+    X --> Y["Severity Prioritization"]
+
+    Y --> F1["Individual Agent Reports"]
+    Y --> F2["Executive Report"]
+    Y --> F3["JSON Results"]
+
+    F1 --> END["Audit Complete"]
+    F2 --> END
+    F3 --> END
+```
+
+---
+
+# 3. Project Structure
+
+The repository must separate agent definitions, auditing skills, configuration, and generated reports.
+
+Use Claude Code conventions:
+
+- `.claude/agents/`: specialized subagent definitions.
+- `.claude/skills/`: reusable auditing instructions.
+- `reports/`: generated audit results.
+- `config/`: system configuration and agent execution settings.
+- `schemas/`: report contracts and validation schemas.
+
+```text
+android-multi-agent-audit/
+│
+├── .claude/
+│   │
+│   ├── agents/
+│   │   ├── android-audit-orchestrator.md
+│   │   ├── android-architecture-agent.md
+│   │   ├── android-kotlin-agent.md
+│   │   ├── android-compose-agent.md
+│   │   ├── android-performance-agent.md
+│   │   ├── android-memory-agent.md
+│   │   ├── android-testing-agent.md
+│   │   ├── android-security-agent.md
+│   │   └── android-build-agent.md
+│   │
+│   └── skills/
+│       ├── android-clean-architecture-audit/
+│       │   └── SKILL.md
+│       ├── android-clean-code-audit/
+│       │   └── SKILL.md
+│       ├── android-kotlin-convention-audit/
+│       │   └── SKILL.md
+│       ├── android-compose-stability-audit/
+│       │   └── SKILL.md
+│       ├── android-performance-audit/
+│       │   └── SKILL.md
+│       ├── android-memory-leak-audit/
+│       │   └── SKILL.md
+│       ├── android-coroutines-flow-audit/
+│       │   └── SKILL.md
+│       ├── android-unit-test-audit/
+│       │   └── SKILL.md
+│       ├── android-security-audit/
+│       │   └── SKILL.md
+│       ├── android-gradle-audit/
+│       │   └── SKILL.md
+│       └── ...
+│
+├── config/
+│   ├── agents.yaml
+│   ├── audit-rules.yaml
+│   ├── severity.yaml
+│   └── report.yaml
+│
+├── schemas/
+│   ├── audit-result.schema.json
+│   └── consolidated-report.schema.json
+│
+├── reports/
+│   └── .gitkeep
+│
+├── scripts/
+│   ├── android-audit
+│   ├── validate-report
+│   └── generate-report
+│
+├── README.md
+└── CHANGELOG.md
+```
+
+The structure should remain extensible. New agents and skills must be added without requiring changes to unrelated agents.
+
+---
+
+# 4. Specialized Agents
+
+The system will initially contain eight specialized agents.
+
+Each agent must have its own responsibility boundaries and must not duplicate the work of another agent unnecessarily.
+
+## 4.1 Architecture Agent
+
+**Agent:** `android-architecture-agent`
+
+**Purpose:** Analyze Android architecture and dependency boundaries.
+
+### Assigned skills
+
+- `android-clean-architecture-audit`
+- `android-modularization-audit`
+- `android-dependency-injection-audit`
+
+### Responsibilities
+
+- Verify Clean Architecture boundaries.
+- Analyze Domain, Data, and Presentation layers.
+- Verify dependency direction.
+- Identify business logic in presentation classes.
+- Identify Android framework dependencies inside Domain.
+- Verify repository contracts and implementations.
+- Analyze module dependencies.
+- Detect circular dependencies.
+- Verify dependency injection scopes.
+- Identify inappropriate coupling between features.
+- Verify separation of responsibilities.
+
+### Expected output
+
+`architecture-report.md`
+
+---
+
+## 4.2 Kotlin Agent
+
+**Agent:** `android-kotlin-agent`
+
+**Purpose:** Evaluate Kotlin code quality, conventions, and language usage.
+
+### Assigned skills
+
+- `android-clean-code-audit`
+- `android-kotlin-convention-audit`
+- `android-coroutines-flow-audit`
+
+### Responsibilities
+
+- Verify Kotlin coding conventions.
+- Analyze naming and readability.
+- Identify duplicated code.
+- Identify excessively complex functions.
+- Analyze SOLID violations.
+- Verify null-safety practices.
+- Identify unsafe casts and unnecessary assertions.
+- Analyze extension functions.
+- Verify visibility modifiers.
+- Inspect coroutine and Flow usage.
+- Detect incorrect dispatcher selection.
+- Identify cancellation and concurrency problems.
+
+### Expected output
+
+`kotlin-report.md`
+
+---
+
+## 4.3 Compose Agent
+
+**Agent:** `android-compose-agent`
+
+**Purpose:** Audit Jetpack Compose architecture, state management, stability, and rendering.
+
+### Assigned skills
+
+- `android-compose-stability-audit`
+- `android-compose-performance-audit`
+- `android-ui-state-audit`
+
+### Responsibilities
+
+- Analyze Composable responsibilities.
+- Verify state hoisting.
+- Inspect UiState, UiEvent, and UiEffect separation.
+- Identify unnecessary recompositions.
+- Verify stability annotations.
+- Inspect immutable models and collections.
+- Analyze remember and derivedStateOf usage.
+- Verify rememberUpdatedState usage.
+- Analyze LaunchedEffect and DisposableEffect.
+- Inspect LazyColumn and LazyRow performance.
+- Verify stable keys.
+- Identify expensive calculations during recomposition.
+- Analyze lifecycle-aware state collection.
+
+### Expected output
+
+`compose-report.md`
+
+---
+
+## 4.4 Performance Agent
+
+**Agent:** `android-performance-agent`
+
+**Purpose:** Identify application performance problems.
+
+### Assigned skills
+
+- `android-performance-audit`
+- `android-startup-performance-audit`
+- `android-baseline-profile-audit`
+
+### Responsibilities
+
+- Identify Main Thread blocking.
+- Analyze startup initialization.
+- Detect unnecessary allocations.
+- Inspect expensive collection transformations.
+- Analyze database access.
+- Identify duplicate network requests.
+- Detect excessive work during rendering.
+- Inspect image loading and decoding.
+- Analyze CPU-intensive operations.
+- Identify potential ANR causes.
+- Recommend profiling and benchmarking.
+
+### Expected output
+
+`performance-report.md`
+
+---
+
+## 4.5 Memory Agent
+
+**Agent:** `android-memory-agent`
+
+**Purpose:** Identify memory leaks and incorrect object retention.
+
+### Assigned skills
+
+- `android-memory-leak-audit`
+- `android-lifecycle-audit`
+- `android-resource-management-audit`
+
+### Responsibilities
+
+- Identify Activity and Fragment retention.
+- Inspect Context references.
+- Detect Fragment ViewBinding leaks.
+- Analyze listener and observer cleanup.
+- Inspect coroutine lifecycle ownership.
+- Detect GlobalScope usage.
+- Analyze Compose resource lifecycle.
+- Identify singleton references to UI components.
+- Inspect bitmap and image retention.
+- Detect unclosed resources.
+- Identify potential OutOfMemoryError scenarios.
+
+### Expected output
+
+`memory-report.md`
+
+---
+
+## 4.6 Testing Agent
+
+**Agent:** `android-testing-agent`
+
+**Purpose:** Evaluate test quality and application testability.
+
+### Assigned skills
+
+- `android-unit-test-audit`
+- `android-compose-test-audit`
+- `android-testability-audit`
+
+### Responsibilities
+
+- Analyze unit tests.
+- Identify missing critical scenarios.
+- Verify edge case coverage.
+- Inspect ViewModel tests.
+- Verify repository tests.
+- Analyze fake implementations.
+- Identify excessive mocking.
+- Inspect Compose UI tests.
+- Verify semantics and accessibility in tests.
+- Detect flaky or poorly isolated tests.
+- Recommend missing test scenarios.
+
+### Expected output
+
+`testing-report.md`
+
+---
+
+## 4.7 Security Agent
+
+**Agent:** `android-security-agent`
+
+**Purpose:** Identify Android application security and privacy problems.
+
+### Assigned skills
+
+- `android-security-audit`
+- `android-network-security-audit`
+- `android-privacy-audit`
+- `android-permissions-audit`
+
+### Responsibilities
+
+- Inspect sensitive data storage.
+- Identify hardcoded secrets.
+- Analyze AndroidManifest permissions.
+- Inspect exported components.
+- Verify network security configuration.
+- Identify insecure HTTP communication.
+- Inspect WebView security configuration.
+- Analyze authentication and token handling.
+- Identify sensitive information in logs.
+- Verify backup and data extraction policies.
+- Inspect cryptographic API usage.
+
+### Expected output
+
+`security-report.md`
+
+---
+
+## 4.8 Build Agent
+
+**Agent:** `android-build-agent`
+
+**Purpose:** Analyze build configuration, dependencies, and compatibility.
+
+### Assigned skills
+
+- `android-gradle-audit`
+- `android-dependency-audit`
+- `android-api-compatibility-audit`
+
+### Responsibilities
+
+- Analyze Gradle configuration.
+- Inspect plugin versions.
+- Identify dependency conflicts.
+- Detect obsolete dependencies.
+- Identify unused dependencies.
+- Verify module build configuration.
+- Inspect Kotlin and Android Gradle Plugin compatibility.
+- Analyze compileSdk and minSdk configuration.
+- Identify deprecated APIs.
+- Inspect build performance opportunities.
+- Verify configuration consistency.
+
+### Expected output
+
+`build-report.md`
+
+---
+
+# 5. Orchestrator Responsibilities
+
+The `android-audit-orchestrator` is the central coordinator.
+
+It must not replace specialized agents or perform all audits itself.
+
+Its primary responsibility is to distribute work, validate results, and produce consolidated reports.
+
+## 5.1 Main responsibilities
+
+1. Discover the Android project.
+2. Identify project modules.
+3. Detect Kotlin, Java, XML, and Compose files.
+4. Identify the requested audit scope.
+5. Discover available agents and skills.
+6. Determine which agents are relevant.
+7. Dispatch audit tasks.
+8. Execute independent agents in parallel when supported.
+9. Collect agent results.
+10. Validate findings.
+11. Detect duplicate findings.
+12. Prioritize issues.
+13. Generate individual reports.
+14. Generate the executive report.
+15. Preserve traceability between findings and source files.
+
+## 5.2 Orchestrator workflow
+
+```mermaid
+flowchart TD
+    A["Start Audit"] --> B["Discover Android Project"]
+    B --> C["Analyze Project Structure"]
+    C --> D["Determine Audit Scope"]
+    D --> E["Discover Agents and Skills"]
+    E --> F["Build Execution Plan"]
+    F --> G["Dispatch Specialized Agents"]
+    G --> H["Collect Agent Results"]
+    H --> I["Validate Findings"]
+    I --> J["Deduplicate Findings"]
+    J --> K["Prioritize by Severity"]
+    K --> L["Generate Individual Reports"]
+    L --> M["Generate Executive Report"]
+    M --> N["Audit Completed"]
+```
+
+## 5.3 Agent execution rules
+
+- Execute independent agents in parallel when the execution environment supports it.
+- Do not launch duplicate audits for the same agent and scope.
+- Pass a clearly defined task to each agent.
+- Provide project root and audit scope.
+- Require structured output.
+- Do not let agents modify source code.
+- Wait for all required agents before generating the final consolidated report.
+- Record agents that failed, timed out, or were skipped.
+- Do not report an incomplete audit as successful.
+
+If parallel execution is unavailable, agents may run sequentially without changing their responsibilities.
+
+---
+
+# 6. Audit Execution Modes
+
+The system must support multiple execution modes.
+
+## 6.1 Full Audit
+
+Command:
+
+```bash
+android-audit --full
+```
+
+Purpose:
+
+Analyze the complete Android project.
+
+Expected behavior:
+
+- Discover all relevant modules.
+- Analyze all supported source files.
+- Execute all eight agents.
+- Generate individual reports.
+- Generate consolidated report.
+
+## 6.2 Changed Files Audit
+
+Command:
+
+```bash
+android-audit --changed-only
+```
+
+Purpose:
+
+Analyze only files modified in the current Git change.
+
+Expected behavior:
+
+- Identify the base Git revision.
+- Identify modified, added, and renamed files.
+- Identify deleted files for contextual analysis.
+- Map files to relevant agents.
+- Analyze changed code and necessary surrounding context.
+- Report only actionable findings introduced or directly exposed by the change.
+
+Important:
+
+A finding in a modified file is not automatically a new regression. The agent must inspect the diff and determine whether the problem was introduced by the change.
+
+## 6.3 Single Agent Audit
+
+Command:
+
+```bash
+android-audit --agent compose
+```
+
+Supported agents:
+
+```text
+architecture
+kotlin
+compose
+performance
+memory
+testing
+security
+build
+```
+
+Purpose:
+
+Execute only the selected agent.
+
+## 6.4 Module Audit
+
+Command:
+
+```bash
+android-audit --module feature.store
+```
+
+Purpose:
+
+Audit a specific Gradle module and relevant dependencies.
+
+## 6.5 Custom Audit
+
+Command:
+
+```bash
+android-audit --scope changed --agents compose,kotlin,architecture
+```
+
+Purpose:
+
+Allow users to select the audit scope and agents.
+
+---
+
+# 7. Skill Execution Contract
+
+Every agent must use the same execution contract.
+
+## 7.1 Required inputs
+
+Each agent receives:
+
+```json
+{
+  "project_root": "/path/to/android-project",
+  "audit_mode": "full",
+  "scope": {
+    "modules": [],
+    "files": []
+  },
+  "base_revision": null,
+  "target_revision": null,
+  "agent": "android-compose-agent",
+  "skills": [
+    "android-compose-stability-audit",
+    "android-compose-performance-audit",
+    "android-ui-state-audit"
+  ],
+  "output_format": "json"
+}
+```
+
+The orchestrator must populate the actual project path and scope rather than relying on the example values.
+
+## 7.2 Required output
+
+Every agent must produce a structured result.
+
+```json
+{
+  "agent": "android-compose-agent",
+  "status": "completed",
+  "summary": {
+    "critical": 0,
+    "high": 2,
+    "medium": 3,
+    "low": 1,
+    "total": 6
+  },
+  "findings": [
+    {
+      "id": "CMP-001",
+      "skill": "android-compose-stability-audit",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "file": "feature/store/presentation/StoreScreen.kt",
+      "line_start": 45,
+      "line_end": 58,
+      "component": "StoreScreen",
+      "rule": "Unstable parameter causing unnecessary recomposition",
+      "evidence": "Relevant source code excerpt",
+      "problem": "Explanation of the issue",
+      "recommendation": "Suggested correction",
+      "validation": "Suggested validation method",
+      "introduced_by_change": true
+    }
+  ]
+}
+```
+
+The example is illustrative. Agents must return actual evidence from the inspected source.
+
+## 7.3 Finding requirements
+
+Every finding must contain:
+
+| Field | Required |
+|---|---|
+| ID | Yes |
+| Skill | Yes |
+| Severity | Yes |
+| Confidence | Yes |
+| File | Yes |
+| Line | Yes |
+| Component | Yes |
+| Rule | Yes |
+| Evidence | Yes |
+| Problem | Yes |
+| Recommendation | Yes |
+| Validation | Recommended |
+| Introduced by change | Required for changed-only audits |
+
+Agents must not invent line numbers, source excerpts, or execution metrics.
+
+---
+
+# 8. Severity Classification
+
+All agents must use the same severity model.
+
+| Severity | Description |
+|---|---|
+| CRITICAL | Severe defect, security exposure, application instability, or major architectural violation with significant consequences. |
+| HIGH | Important defect with meaningful impact on correctness, security, performance, or maintainability. |
+| MEDIUM | Maintainability, reliability, or quality issue that should be corrected. |
+| LOW | Minor improvement or low-impact convention violation. |
+| INFO | Positive observation or informational recommendation, not a defect. |
+
+## 8.1 Severity rules
+
+- Severity must reflect actual impact.
+- Do not classify theoretical optimizations as HIGH.
+- Do not classify style preferences as CRITICAL.
+- Use confidence separately from severity.
+- A finding with insufficient evidence must not be presented as confirmed.
+- When appropriate, request profiling or runtime validation.
+
+---
+
+# 9. Deduplication Strategy
+
+Different agents may identify the same underlying problem.
+
+For example:
+
+- Kotlin Agent detects incorrect coroutine scope ownership.
+- Memory Agent detects a coroutine retaining an Activity.
+- Performance Agent detects unnecessary background work.
+
+These findings may share a root cause but represent different technical impacts.
+
+The aggregator must distinguish between:
+
+1. Exact duplicates.
+2. Related findings.
+3. Independent findings in the same file.
+4. Different symptoms caused by the same root cause.
+
+## 9.1 Deduplication rules
+
+Merge findings only when they represent the same underlying violation and substantially overlap in evidence.
+
+Preserve all relevant skill and agent references.
+
+Do not merge independent issues merely because they occur in the same method.
+
+## 9.2 Consolidated finding example
+
+```json
+{
+  "id": "AUDIT-001",
+  "severity": "HIGH",
+  "confidence": "HIGH",
+  "file": "feature/home/presentation/HomeViewModel.kt",
+  "line_start": 32,
+  "line_end": 40,
+  "title": "Incorrect coroutine lifecycle ownership",
+  "agents": [
+    "android-kotlin-agent",
+    "android-memory-agent"
+  ],
+  "skills": [
+    "android-coroutines-flow-audit",
+    "android-memory-leak-audit"
+  ],
+  "root_cause": "Coroutine launched in an inappropriate scope",
+  "recommendation": "Use a lifecycle-appropriate coroutine scope and ensure cancellation."
+}
+```
+
+The consolidated finding must preserve references to the original agent reports.
+
+---
+
+# 10. Reporting System
+
+The system must generate a complete report directory for every audit execution.
+
+## 10.1 Report structure
+
+```text
+reports/
+└── audit-2026-11-05-210000/
+    │
+    ├── executive-summary.md
+    ├── consolidated-findings.md
+    ├── audit-results.json
+    │
+    ├── agents/
+    │   ├── architecture-report.md
+    │   ├── kotlin-report.md
+    │   ├── compose-report.md
+    │   ├── performance-report.md
+    │   ├── memory-report.md
+    │   ├── testing-report.md
+    │   ├── security-report.md
+    │   └── build-report.md
+    │
+    └── metadata/
+        ├── execution.json
+        ├── project-info.json
+        └── agent-status.json
+```
+
+The timestamp is illustrative. Generate a unique audit identifier for every execution.
+
+## 10.2 Executive report
+
+The executive report must provide a high-level overview of the entire audit.
+
+Required sections:
+
+### Audit information
+
+- Audit ID.
+- Project name.
+- Git branch.
+- Base revision.
+- Target revision.
+- Audit mode.
+- Execution timestamp.
+- Number of analyzed modules.
+- Number of analyzed files.
+- Number of executed agents.
+
+### Agent execution summary
+
+| Agent | Status | Findings |
+|---|---|---:|
+| Architecture | Completed | 5 |
+| Kotlin | Completed | 4 |
+| Compose | Completed | 6 |
+| Performance | Completed | 3 |
+| Memory | Completed | 2 |
+| Testing | Completed | 4 |
+| Security | Completed | 1 |
+| Build | Completed | 2 |
+
+### Severity distribution
+
+| Severity | Count |
+|---|---:|
+| Critical | 0 |
+| High | 5 |
+| Medium | 12 |
+| Low | 8 |
+| Info | 3 |
+
+### Main risks
+
+List the most important findings across all agents.
+
+### Recommended actions
+
+Prioritize recommendations based on severity, confidence, and affected functionality.
+
+### Audit completeness
+
+Explicitly identify:
+
+- Agents that completed successfully.
+- Agents that failed.
+- Agents that were skipped.
+- Modules that could not be analyzed.
+- Areas requiring runtime validation.
+
+Counts above are examples, not expected results.
+
+## 10.3 Individual agent report
+
+Every agent report must include:
+
+```markdown
+# Compose Audit Report
+
+## Summary
+
+- Agent: android-compose-agent
+- Status: Completed
+- Skills executed:
+  - android-compose-stability-audit
+  - android-compose-performance-audit
+  - android-ui-state-audit
+
+## Findings Summary
+
+| Severity | Count |
+|---|---:|
+| Critical | 0 |
+| High | 2 |
+| Medium | 3 |
+| Low | 1 |
+
+## Findings
+
+### CMP-001 - Unstable parameter
+
+- Severity: HIGH
+- Confidence: HIGH
+- File: StoreScreen.kt
+- Line: 45-58
+- Skill: android-compose-stability-audit
+
+#### Evidence
+
+Source code excerpt.
+
+#### Problem
+
+Explanation of the violation.
+
+#### Recommendation
+
+Suggested correction.
+
+#### Validation
+
+Suggested test or profiling procedure.
+
+## Positive Observations
+
+List practices implemented correctly.
+
+## Limitations
+
+List any limitations encountered during the audit.
+```
+
+---
+
+# 11. Claude Code Implementation
+
+The system must use Claude Code's native agent and skill mechanisms.
+
+## 11.1 Agent definitions
+
+Each specialized agent must be defined in:
+
+```text
+.claude/agents/
+```
+
+Use the Claude Code subagent definition format, including:
+
+- Agent name.
+- Description.
+- Supported tools.
+- Model configuration when necessary.
+- System instructions.
+- Skills to use.
+- Required output format.
+
+Agent definitions must explicitly identify which skills they are responsible for applying.
+
+## 11.2 Skill definitions
+
+Each skill must be located in:
+
+```text
+.claude/skills/<skill-name>/SKILL.md
+```
+
+Skills provide reusable technical auditing instructions.
+
+An agent must load and apply its assigned skills before analyzing code.
+
+Do not copy all skill rules into agent definitions. Keep specialized technical knowledge in the skills to avoid duplicated and inconsistent instructions.
+
+## 11.3 Orchestrator definition
+
+The orchestrator must be defined as a Claude Code subagent or equivalent coordinating entry point.
+
+Its responsibilities include:
+
+- Discovering the available agents.
+- Preparing audit tasks.
+- Invoking specialized subagents through the supported Claude Code mechanism.
+- Collecting their responses.
+- Validating structured output.
+- Generating reports.
+
+The orchestration implementation must use actual supported Claude Code subagent invocation mechanisms. Do not assume that merely writing an `AGENT.md` or `SKILL.md` automatically executes another agent.
+
+---
+
+# 12. CLI Interface
+
+The project should eventually expose a simple command-line interface.
+
+## 12.1 Commands
+
+### Full audit
+
+```bash
+android-audit --full
+```
+
+### Changed files
+
+```bash
+android-audit --changed-only
+```
+
+### Single agent
+
+```bash
+android-audit --agent compose
+```
+
+### Multiple agents
+
+```bash
+android-audit --agents compose,kotlin,architecture
+```
+
+### Specific module
+
+```bash
+android-audit --module feature.store
+```
+
+### Custom audit
+
+```bash
+android-audit \
+  --scope changed \
+  --agents compose,kotlin,architecture \
+  --format markdown,json
+```
+
+## 12.2 CLI requirements
+
+- Validate command arguments.
+- Validate project root.
+- Validate Git repository.
+- Detect unavailable agents.
+- Provide meaningful error messages.
+- Support configurable report output paths.
+- Return non-zero exit codes when execution fails.
+- Distinguish audit findings from execution failures.
+- Preserve logs and execution metadata.
+- Never modify source files during an audit.
+
+---
+
+# 13. Gerrit Integration
+
+Gerrit integration is a future extension of the architecture.
+
+The system should be able to analyze a specific Gerrit change and optionally publish selected findings as review comments.
+
+## 13.1 Proposed workflow
+
+```mermaid
+flowchart TD
+    A["Gerrit Change"] --> B["Fetch Change Metadata"]
+    B --> C["Get Patchset Diff"]
+    C --> D["Changed Files Audit"]
+    D --> E["Execute Specialized Agents"]
+    E --> F["Aggregate Findings"]
+    F --> G["Review Comment Filter"]
+    G --> H["Severity Threshold"]
+    H --> I["Publish Gerrit Comments"]
+    F --> J["Generate Audit Reports"]
+```
+
+## 13.2 Gerrit requirements
+
+- Identify project, change number, and patchset.
+- Retrieve the correct patchset diff.
+- Analyze modified lines and surrounding context.
+- Associate findings with valid file paths and line numbers.
+- Publish only findings meeting the configured severity threshold.
+- Avoid duplicate comments.
+- Preserve report references.
+- Support dry-run mode.
+- Never publish comments without validating that the referenced line belongs to the target patchset.
+
+## 13.3 Suggested CLI
+
+```bash
+android-audit \
+  --gerrit-change 123456 \
+  --patchset 3 \
+  --severity high \
+  --dry-run
+```
+
+This command is a proposed interface; the Gerrit adapter must be implemented separately.
+
+---
+
+# 14. Quality and Reliability Rules
+
+These rules apply to every agent and the orchestrator.
+
+## 14.1 Evidence-based findings
+
+Every reported issue must be supported by:
+
+- Existing source code.
+- Exact file path.
+- Exact line or line range.
+- A relevant rule.
+- A clear explanation.
+
+## 14.2 No speculative findings
+
+Agents must not:
+
+- Invent implementation details.
+- Assume missing code exists.
+- Report hypothetical issues as confirmed defects.
+- Invent profiling measurements.
+- Guess line numbers.
+- Report stylistic preferences as architectural violations.
+- Recommend changes without understanding the affected code.
+
+## 14.3 No automatic modifications
+
+The audit system is read-only by default.
+
+Agents must not:
+
+- Modify source files.
+- Change Gradle configuration.
+- Automatically fix findings.
+- Create commits.
+- Push changes.
+- Publish Gerrit comments unless explicitly enabled.
+
+Future remediation capabilities must be implemented as a separate, explicitly authorized workflow.
+
+## 14.4 Traceability
+
+Every consolidated finding must reference:
+
+- Its originating agent.
+- Its originating skill.
+- Its original finding ID.
+- Its source file.
+- Its evidence.
+
+## 14.5 Confidence
+
+| Confidence | Meaning |
+|---|---|
+| HIGH | Direct evidence clearly demonstrates the violation. |
+| MEDIUM | Strong indication, but additional context is needed. |
+| LOW | Potential issue requiring further investigation. |
+
+---
+
+# 15. Implementation Phases
+
+Implementation should be incremental.
+
+## Phase 1 — Foundation
+
+Deliverables:
+
+- Repository structure.
+- Orchestrator definition.
+- Eight agent definitions.
+- Reuse of existing skills.
+- Shared report contract.
+- Severity configuration.
+
+Acceptance criteria:
+
+- All agents can be discovered.
+- Every agent has defined responsibilities.
+- Skills are assigned correctly.
+- Reports follow the common contract.
+
+## Phase 2 — Individual Audits
+
+Deliverables:
+
+- Architecture Agent.
+- Kotlin Agent.
+- Compose Agent.
+- Performance Agent.
+- Memory Agent.
+- Testing Agent.
+- Security Agent.
+- Build Agent.
+
+Acceptance criteria:
+
+- Each agent can independently analyze its domain.
+- Findings include exact file and line references.
+- Findings include evidence and recommendations.
+- Agents do not modify source code.
+
+## Phase 3 — Orchestration
+
+Deliverables:
+
+- Agent dispatcher.
+- Parallel execution support.
+- Execution status tracking.
+- Failure handling.
+- Result collection.
+
+Acceptance criteria:
+
+- The orchestrator can execute multiple agents.
+- Agent failures do not silently disappear.
+- Incomplete audits are explicitly identified.
+
+## Phase 4 — Report Aggregation
+
+Deliverables:
+
+- Finding validation.
+- Deduplication.
+- Severity prioritization.
+- Individual reports.
+- Executive report.
+- JSON export.
+
+Acceptance criteria:
+
+- Every agent produces an individual report.
+- The executive report consolidates all results.
+- Duplicate findings retain original references.
+- Reports contain no invented information.
+
+## Phase 5 — CLI
+
+Deliverables:
+
+- `--full`.
+- `--changed-only`.
+- `--agent`.
+- `--agents`.
+- `--module`.
+- Report format selection.
+
+Acceptance criteria:
+
+- Commands validate inputs.
+- Git scope is correctly identified.
+- Exit codes reflect execution status.
+
+## Phase 6 — Gerrit Integration
+
+Deliverables:
+
+- Gerrit change retrieval.
+- Patchset analysis.
+- Finding-to-diff mapping.
+- Review comment filtering.
+- Dry-run mode.
+- Optional comment publishing.
+
+Acceptance criteria:
+
+- Comments reference valid changed lines.
+- Only configured severities are published.
+- Duplicate comments are avoided.
+- No comments are published in dry-run mode.
+
+---
+
+# 16. Testing Strategy
+
+The system itself must be tested.
+
+## Agent tests
+
+- Verify each agent loads the correct skills.
+- Verify responsibility boundaries.
+- Verify output schema.
+- Verify file and line references.
+- Verify severity and confidence classification.
+
+## Orchestrator tests
+
+- Verify agent discovery.
+- Verify task distribution.
+- Verify parallel execution.
+- Verify sequential fallback.
+- Verify agent failure handling.
+- Verify incomplete audit handling.
+
+## Aggregator tests
+
+- Verify duplicate detection.
+- Verify related finding preservation.
+- Verify severity prioritization.
+- Verify original agent traceability.
+- Verify JSON schema validation.
+
+## Integration tests
+
+Use small Android fixture projects containing known examples of:
+
+- Clean Architecture violations.
+- Incorrect Kotlin conventions.
+- Compose stability issues.
+- Main Thread blocking.
+- Fragment ViewBinding leaks.
+- Missing unit tests.
+- Insecure configuration.
+- Gradle dependency issues.
+
+Expected findings must be compared against the generated results.
+
+---
+
+# 17. Success Criteria
+
+The system is considered ready when:
+
+1. Eight specialized agents are available.
+2. Existing skills are reused instead of duplicated.
+3. Every agent has a clearly defined technical responsibility.
+4. Full project audits work.
+5. Changed-file audits work.
+6. Individual reports are generated.
+7. A consolidated report is generated.
+8. Findings contain verifiable evidence.
+9. Duplicate findings are handled correctly.
+10. Failed or skipped agents are visible in the report.
+11. The audit does not modify application source code.
+12. The architecture supports future Gerrit integration.
+
+---
+
+# 18. Final Architecture Principles
+
+The project must follow these principles:
+
+- One orchestrator, multiple specialized agents.
+- One technical responsibility per agent.
+- Skills are reusable knowledge, not agents.
+- Agents must not duplicate specialized rules.
+- Findings must be evidence-based.
+- Reports must be independently auditable.
+- Deduplication must preserve technical context.
+- Parallel execution must not compromise result quality.
+- Source code must remain unchanged during auditing.
+- Gerrit integration must remain a separate adapter.
+
+## Final Expected Result
+
+The final system should allow a developer to execute:
+
+```bash
+android-audit --full
+```
+
+And receive:
+
+```text
+ANDROID MULTI-AGENT AUDIT
+│
+├── EXECUTIVE SUMMARY
+│
+├── ARCHITECTURE AGENT
+│   └── architecture-report.md
+│
+├── KOTLIN AGENT
+│   └── kotlin-report.md
+│
+├── COMPOSE AGENT
+│   └── compose-report.md
+│
+├── PERFORMANCE AGENT
+│   └── performance-report.md
+│
+├── MEMORY AGENT
+│   └── memory-report.md
+│
+├── TESTING AGENT
+│   └── testing-report.md
+│
+├── SECURITY AGENT
+│   └── security-report.md
+│
+├── BUILD AGENT
+│   └── build-report.md
+│
+├── CONSOLIDATED FINDINGS
+│   └── consolidated-findings.md
+│
+└── MACHINE-READABLE RESULTS
+    └── audit-results.json
+```
+
+**The result is a modular, extensible, evidence-based Android code auditing platform built around independent specialized agents coordinated by Claude Code.**
